@@ -1,0 +1,238 @@
+@page
+@model DetailModel
+@{
+    ViewData["Title"] = $"{Model.Ticker} — Detail";
+    var weights = Model.WeightsJson != null
+        ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(Model.WeightsJson)
+        : null;
+}
+
+<div class="page-container">
+
+    <a href="/" class="btn-back">← Back</a>
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert-box error">@Model.ErrorMessage</div>
+    }
+
+    @if (Model.Signal != null)
+    {
+        var s     = Model.Signal;
+        var isBuy = s.Signal == "BUY";
+
+        <!-- Sinyal kartı -->
+        <div class="detail-card">
+            <div class="detail-card-header">
+                <h5>
+                    @s.Ticker
+                    @if (isBuy)
+                    {
+                        <span class="signal-badge buy" style="margin-left:10px">▲ BUY</span>
+                    }
+                    else
+                    {
+                        <span class="signal-badge sell" style="margin-left:10px">▼ SELL</span>
+                    }
+                </h5>
+                @if (!s.InTrainingSet)
+                {
+                    <span class="out-of-training">Out of training set</span>
+                }
+            </div>
+            <div class="detail-card-body">
+                <div class="metrics-row">
+                    <div class="metric-item">
+                        <div class="metric-value @(isBuy ? "buy" : "sell")">@s.Confidence.ToString("P1")</div>
+                        <div class="metric-label">Confidence</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">@(s.LastPrice.HasValue ? $"${s.LastPrice.Value:F2}" : "—")</div>
+                        <div class="metric-label">Last Price</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">@s.FutureDays days</div>
+                        <div class="metric-label">Prediction Horizon</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" style="font-size:18px">@(s.InTrainingSet ? "✓ Yes" : "⚠ No")</div>
+                        <div class="metric-label">In Training Set</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Heatmap kartı -->
+        <div class="detail-card">
+            <div class="detail-card-header"><h5>Where did the model look?</h5></div>
+            <div class="detail-card-body">
+                <p class="chart-note">
+                    This heatmap shows <strong>which time periods</strong> the model focused on when making its decision.
+                    The input is the last <strong>400 trading days</strong> (≈ 20 months), reshaped into a 20×20 grid —
+                    so the <strong>top-left cell is day 1</strong> (oldest) and the <strong>bottom-right cell is day 400</strong> (most recent).
+                    <br /><br />
+                    <span style="color:#e74c3c; font-weight:600;">Red/yellow zones</span> = areas the model weighted heavily.
+                    <span style="color:#3498db; font-weight:600;">Blue zones</span> = areas largely ignored.
+                    If the model focuses on recent days (bottom rows), it is reacting to short-term momentum.
+                    If it focuses on older days (top rows), it is picking up on longer-term patterns.
+                </p>
+                <div class="chart-area">
+                    <img src="@Model.ApiBaseUrl/gradcam/@s.Ticker?market=@Model.Market"
+                         alt="Grad-CAM @s.Ticker"
+                         class="img-fluid rounded" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicator weights card -->
+        @if (weights != null)
+        {
+            <div class="detail-card">
+                <div class="detail-card-header"><h5>Which indicators did the model prioritize?</h5></div>
+                <div class="detail-card-body">
+                    <p class="chart-note">
+                        The model learned to map <strong>16 technical indicators</strong> into 3 channels (R, G, B) —
+                        similar to how an image has color channels. Each bar shows how much a given indicator
+                        contributes to each channel. <strong>Positive values</strong> activate the channel;
+                        <strong>negative values</strong> suppress it. Indicators with large absolute values
+                        had the most influence on the model's decision.
+                    </p>
+
+                    <div style="display:flex; gap:24px; margin-bottom:20px; flex-wrap:wrap;">
+                        <!-- Sol: scroll liste -->
+                        <div style="width:220px; flex-shrink:0;">
+                            <div style="font-size:12px; color:var(--text2); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Select Indicator</div>
+                            <div id="indicator-list" style="border:1px solid var(--border); border-radius:8px; overflow-y:auto; max-height:400px;">
+                                @foreach (var kv in weights)
+                                {
+                                    <div class="indicator-item" data-name="@kv.Key"
+                                         onclick="selectIndicator('@kv.Key')"
+                                         style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px;">
+                                        @kv.Key
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Sağ: seçilen indikatörün detayı -->
+                        <div style="flex:1; min-width:300px;">
+                            <div id="indicator-detail" style="display:none;">
+                                <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px;" id="ind-name"></div>
+                                <div style="font-size:13px; color:var(--text2); margin-bottom:16px; line-height:1.6;" id="ind-desc"></div>
+                                <div style="display:flex; gap:12px; margin-bottom:20px;">
+                                    <div style="flex:1; background:var(--bg2); border-radius:8px; padding:14px; text-align:center;">
+                                        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">R Channel</div>
+                                        <div id="ind-r" style="font-size:20px; font-weight:600; color:#e74c3c;"></div>
+                                    </div>
+                                    <div style="flex:1; background:var(--bg2); border-radius:8px; padding:14px; text-align:center;">
+                                        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">G Channel</div>
+                                        <div id="ind-g" style="font-size:20px; font-weight:600; color:#2ecc71;"></div>
+                                    </div>
+                                    <div style="flex:1; background:var(--bg2); border-radius:8px; padding:14px; text-align:center;">
+                                        <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">B Channel</div>
+                                        <div id="ind-b" style="font-size:20px; font-weight:600; color:#3498db;"></div>
+                                    </div>
+                                </div>
+                                <canvas id="ind-chart" height="120"></canvas>
+                            </div>
+                            <div id="indicator-placeholder" style="color:var(--text2); font-size:14px; padding-top:40px;">
+                                ← Select an indicator from the list to see its details.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- R/G/B için top indikatörler -->
+                    <div style="margin-top:24px;">
+                        <div style="font-size:13px; color:var(--text2); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">Top contributors per channel</div>
+                        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                            @foreach (var channel in new[] { ("R", "#e74c3c"), ("G", "#2ecc71"), ("B", "#3498db") })
+                            {
+                                var top = weights
+                                    .OrderByDescending(kv => Math.Abs(kv.Value[channel.Item1]))
+                                    .Take(3)
+                                    .ToList();
+                                <div style="flex:1; min-width:180px; background:var(--bg2); border-radius:8px; padding:14px;">
+                                    <div style="font-size:12px; font-weight:600; color:@channel.Item2; margin-bottom:10px;">@channel.Item1 Channel</div>
+                                    @foreach (var item in top)
+                                    {
+                                        var val = item.Value[channel.Item1];
+                                        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                                            <span>@item.Key</span>
+                                            <span style="color:@(val >= 0 ? "#2ecc71" : "#e74c3c"); font-weight:600;">@val.ToString("+0.000;-0.000")</span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const weights = @Html.Raw(Model.WeightsJson ?? "{}");
+
+    const descriptions = {
+        log_return:       "Daily log return — measures how much the price moved today relative to yesterday. Positive = price rose, negative = fell. Clipped at ±5% to remove outliers.",
+        volatility:       "Intraday volatility — (High - Low) / Close. Shows how wide the price range was during the day. High values = uncertain, choppy market.",
+        volume_ratio:     "Volume anomaly — compares today's volume to the 20-day average. Values above 0.5 mean unusually high trading activity, which often precedes large moves.",
+        rsi_14:           "RSI (14-day) — Relative Strength Index. Values above 0.7 (70) suggest overbought conditions; below 0.3 (30) suggest oversold. A classic momentum oscillator.",
+        rsi_5:            "RSI (5-day) — short-term version of RSI. Reacts faster to price changes, useful for detecting very recent momentum shifts.",
+        rsi_30:           "RSI (30-day) — long-term version of RSI. Slower to react, captures broader trend momentum rather than day-to-day swings.",
+        stoch:            "Stochastic Oscillator (14-day) — measures where the close price sits within the recent high-low range. Above 0.8 = overbought, below 0.2 = oversold.",
+        williams_r:       "Williams %R (14-day) — similar to Stochastic but inverted. Highlights overbought/oversold conditions. Ranges 0–1 after normalization.",
+        mfi:              "Money Flow Index (14-day) — like RSI but incorporates volume. Helps detect whether large volume is flowing into or out of the stock.",
+        macd:             "MACD (12,26) — difference between 12-day and 26-day EMAs. Positive = short-term trend above long-term trend (bullish); negative = bearish.",
+        macd_signal:      "MACD Signal line — 9-day EMA of the MACD. When MACD crosses above the signal line, it is a classic buy signal.",
+        close_ema_ratio:  "Close / EMA20 — how far today's price is from the 20-day moving average. Values above 1 = price above average (trending up).",
+        ema_diff:         "EMA Diff — (EMA12 - EMA26) / Close. Normalized version of MACD. Captures the relative divergence between short and long EMAs.",
+        adx:              "ADX (14-day) — Average Directional Index. Measures trend strength, not direction. Values above 0.25 (25) indicate a strong trend; below = ranging market.",
+        bb_pct:           "Bollinger Band %B — where the price sits within the bands. 0 = at lower band, 1 = at upper band, 0.5 = at middle. Detects breakouts.",
+        bb_width:         "Bollinger Band Width — how wide the bands are relative to the middle. Narrow bands = low volatility (squeeze), wide bands = high volatility.",
+    };
+
+    function selectIndicator(name) {
+        document.querySelectorAll('.indicator-item').forEach(el => {
+            el.style.background = el.dataset.name === name ? 'var(--bg3)' : '';
+            el.style.fontWeight = el.dataset.name === name ? '600' : '';
+        });
+
+        const w = weights[name];
+        document.getElementById('indicator-detail').style.display = 'block';
+        document.getElementById('indicator-placeholder').style.display = 'none';
+        document.getElementById('ind-name').textContent = name;
+        document.getElementById('ind-desc').textContent = descriptions[name] || '';
+        document.getElementById('ind-r').textContent = (w.R >= 0 ? '+' : '') + w.R.toFixed(3);
+        document.getElementById('ind-g').textContent = (w.G >= 0 ? '+' : '') + w.G.toFixed(3);
+        document.getElementById('ind-b').textContent = (w.B >= 0 ? '+' : '') + w.B.toFixed(3);
+
+        const existing = Chart.getChart('ind-chart');
+        if (existing) existing.destroy();
+
+        new Chart(document.getElementById('ind-chart'), {
+            type: 'bar',
+            data: {
+                labels: ['R Channel', 'G Channel', 'B Channel'],
+                datasets: [{
+                    data: [w.R, w.G, w.B],
+                    backgroundColor: ['#e74c3c99', '#2ecc7199', '#3498db99'],
+                    borderColor:     ['#e74c3c',   '#2ecc71',   '#3498db'],
+                    borderWidth: 1.5,
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        grid:  { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#8892a4' }
+                    },
+                    x: { ticks: { color: '#8892a4' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+</script>

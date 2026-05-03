@@ -1,0 +1,294 @@
+@page
+@model IndicatorsModel
+@{ ViewData["Title"] = "Indicators"; }
+
+<div class="page-container">
+
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:28px; flex-wrap:wrap; justify-content:space-between;">
+        <div>
+            <div class="section-title" style="margin-bottom:4px;">Model Indicators</div>
+            <div style="font-size:13px; color:var(--text2);">Which indicators does the model rely on most?</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <a href="?market=SP500"     class="btn-detail @(Model.SelectedMarket == "SP500"     ? "active" : "")">S&P 500</a>
+            <a href="?market=NASDAQ100" class="btn-detail @(Model.SelectedMarket == "NASDAQ100" ? "active" : "")">NASDAQ 100</a>
+            <a href="?market=BIST100"   class="btn-detail @(Model.SelectedMarket == "BIST100"   ? "active" : "")">BIST 100</a>
+        </div>
+    </div>
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert-box error">@Model.ErrorMessage</div>
+    }
+    else if (Model.WeightsJson != null)
+    {
+        <!-- Top 5 mutlak katkı -->
+        <div class="detail-card" style="margin-bottom:20px;">
+            <div class="detail-card-header"><h5>Top 5 Most Influential Indicators</h5></div>
+            <div class="detail-card-body">
+                <p class="chart-note">
+                    Absolute contribution across all channels (R+G+B). 
+                    Higher value = more influence on the model's decision, regardless of direction.
+                </p>
+                <div id="top5-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+        </div>
+
+        <!-- Kanal bazlı grafik -->
+        <div class="detail-card" style="margin-bottom:20px;">
+            <div class="detail-card-header"><h5>Channel Contributions (R / G / B)</h5></div>
+            <div class="detail-card-body">
+                <p class="chart-note">
+                    Each bar shows how much an indicator contributes to each RGB channel.
+                    Positive values activate the channel; negative values suppress it.
+                    Select an indicator from the list to see details.
+                </p>
+                <div style="display:flex; gap:24px; flex-wrap:wrap;">
+                    <div style="width:220px; flex-shrink:0;">
+                        <div style="font-size:12px; color:var(--text2); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Select Indicator</div>
+                        <div id="indicator-list" style="border:1px solid var(--border); overflow-y:auto; max-height:400px;"></div>
+                    </div>
+                    <div style="flex:1; min-width:300px;">
+                        <div id="indicator-detail" style="display:none;">
+                            <div style="font-size:16px; font-weight:600; margin-bottom:4px;" id="ind-name"></div>
+                            <div style="font-size:13px; color:var(--text2); margin-bottom:16px; line-height:1.6;" id="ind-desc"></div>
+                            <div style="display:flex; gap:12px; margin-bottom:20px;">
+                                <div style="flex:1; background:var(--bg3); border:1px solid var(--border); padding:14px; text-align:center;">
+                                    <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">R Channel</div>
+                                    <div id="ind-r" style="font-size:20px; font-weight:600; color:#e74c3c;"></div>
+                                </div>
+                                <div style="flex:1; background:var(--bg3); border:1px solid var(--border); padding:14px; text-align:center;">
+                                    <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">G Channel</div>
+                                    <div id="ind-g" style="font-size:20px; font-weight:600; color:#3fb950;"></div>
+                                </div>
+                                <div style="flex:1; background:var(--bg3); border:1px solid var(--border); padding:14px; text-align:center;">
+                                    <div style="font-size:11px; color:var(--text2); margin-bottom:4px;">B Channel</div>
+                                    <div id="ind-b" style="font-size:20px; font-weight:600; color:#388bfd;"></div>
+                                </div>
+                            </div>
+                            <canvas id="ind-chart" height="120"></canvas>
+                        </div>
+                        <div id="indicator-placeholder" style="color:var(--text2); font-size:14px; padding-top:40px;">
+                            ← Select an indicator from the list.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model bilgisi kartı -->
+        <div class="detail-card" style="margin-bottom:20px;">
+            <div class="detail-card-header"><h5>Current Model Info</h5></div>
+            <div class="detail-card-body">
+                <div id="model-info" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;"></div>
+            </div>
+        </div>
+
+        <!-- Performans geçmişi -->
+        <div class="detail-card">
+            <div class="detail-card-header"><h5>Model Performance History</h5></div>
+            <div class="detail-card-body">
+                <p class="chart-note">
+                    F1 score over time. Each point represents a training run. 
+                    Downward trend may indicate model drift.
+                </p>
+                <canvas id="history-chart" height="80"></canvas>
+                <div id="no-history" style="display:none; color:var(--text2); font-size:14px; padding:20px 0;">
+                    No training history yet.
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const weights = @Html.Raw(Model.WeightsJson ?? "[]");
+
+    const descriptions = {
+        log_return:      "Daily log return — measures how much the price moved today relative to yesterday.",
+        volatility:      "Intraday volatility — (High - Low) / Close. Shows how wide the price range was.",
+        volume_ratio:    "Volume anomaly — compares today's volume to the 20-day average.",
+        rsi_14:          "RSI (14-day) — values above 70 suggest overbought; below 30 oversold.",
+        stoch:           "Stochastic Oscillator (14-day) — overbought/oversold conditions.",
+        mfi:             "Money Flow Index — like RSI but incorporates volume.",
+        cci:             "CCI (14-day) — momentum + trend combination.",
+        roc:             "ROC (10-day) — rate of price change, momentum indicator.",
+        macd:            "MACD (12,26) — difference between short and long EMAs.",
+        macd_signal:     "MACD Signal — 9-day EMA of the MACD line.",
+        adx:             "ADX (14-day) — trend strength indicator, not direction.",
+        vwap_ratio:      "Close/VWAP — institutional reference price comparison.",
+        bb_pct:          "Bollinger Band %B — where price sits within the bands.",
+        bb_width:        "Bollinger Band Width — volatility range indicator.",
+        atr:             "ATR (14-day) — true range volatility measurement.",
+        obv_ratio:       "OBV Ratio — volume-based trend confirmation.",
+    };
+
+    // Top 5 mutlak katkı
+    const top5 = [...weights].sort((a, b) => b.absolute - a.absolute).slice(0, 5);
+    const maxAbs = top5[0]?.absolute || 1;
+    const top5Container = document.getElementById('top5-container');
+    top5.forEach((ind, i) => {
+        const pct = (ind.absolute / maxAbs * 100).toFixed(0);
+        top5Container.innerHTML += `
+            <div style="display:flex; align-items:center; gap:16px;">
+                <div style="width:24px; font-size:13px; font-weight:700; color:var(--text3);">#${i+1}</div>
+                <div style="width:120px; font-size:14px; font-weight:600; color:var(--text);">${ind.name}</div>
+                <div style="flex:1; background:var(--bg4); height:6px;">
+                    <div style="width:${pct}%; height:100%; background:var(--accent2);"></div>
+                </div>
+                <div style="width:50px; font-size:13px; color:var(--text2); text-align:right;">${ind.absolute.toFixed(3)}</div>
+            </div>`;
+    });
+
+    // Indicator listesi
+    const listEl = document.getElementById('indicator-list');
+    weights.forEach(ind => {
+        listEl.innerHTML += `
+            <div class="indicator-item" data-name="${ind.name}"
+                 onclick="selectIndicator('${ind.name}')"
+                 style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px;">
+                ${ind.name}
+            </div>`;
+    });
+
+    function selectIndicator(name) {
+        document.querySelectorAll('.indicator-item').forEach(el => {
+            el.style.background = el.dataset.name === name ? 'var(--bg3)' : '';
+            el.style.fontWeight = el.dataset.name === name ? '600' : '';
+        });
+
+        const w = weights.find(x => x.name === name);
+        document.getElementById('indicator-detail').style.display = 'block';
+        document.getElementById('indicator-placeholder').style.display = 'none';
+        document.getElementById('ind-name').textContent = name;
+        document.getElementById('ind-desc').textContent = descriptions[name] || '';
+        document.getElementById('ind-r').textContent = (w.r >= 0 ? '+' : '') + w.r.toFixed(3);
+        document.getElementById('ind-g').textContent = (w.g >= 0 ? '+' : '') + w.g.toFixed(3);
+        document.getElementById('ind-b').textContent = (w.b >= 0 ? '+' : '') + w.b.toFixed(3);
+
+        const existing = Chart.getChart('ind-chart');
+        if (existing) existing.destroy();
+
+        new Chart(document.getElementById('ind-chart'), {
+            type: 'bar',
+            data: {
+                labels: ['R Channel', 'G Channel', 'B Channel'],
+                datasets: [{
+                    data: [w.r, w.g, w.b],
+                    backgroundColor: ['rgba(231,76,60,0.5)', 'rgba(63,185,80,0.5)', 'rgba(56,139,253,0.5)'],
+                    borderColor:     ['#e74c3c', '#3fb950', '#388bfd'],
+                    borderWidth: 1.5,
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b949e' } },
+                    x: { ticks: { color: '#8b949e' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Model info
+    async function loadModelInfo() {
+        try {
+            const r    = await fetch(`/api/proxy/indicators/@Model.SelectedMarket`);
+            const data = await r.json();
+            
+            const pred = {
+                market:   '@Model.SelectedMarket',
+                features: data.length,
+            };
+
+            document.getElementById('model-info').innerHTML = `
+                <div style="background:var(--bg3); border:1px solid var(--border); padding:16px; text-align:center;">
+                    <div style="font-size:11px; color:var(--text3); text-transform:uppercase; margin-bottom:8px;">Market</div>
+                    <div style="font-size:18px; font-weight:700; color:var(--accent2);">${pred.market}</div>
+                </div>
+                <div style="background:var(--bg3); border:1px solid var(--border); padding:16px; text-align:center;">
+                    <div style="font-size:11px; color:var(--text3); text-transform:uppercase; margin-bottom:8px;">Indicators</div>
+                    <div style="font-size:18px; font-weight:700; color:var(--text);">${pred.features}</div>
+                </div>
+                <div style="background:var(--bg3); border:1px solid var(--border); padding:16px; text-align:center;">
+                    <div style="font-size:11px; color:var(--text3); text-transform:uppercase; margin-bottom:8px;">Top Indicator</div>
+                    <div style="font-size:18px; font-weight:700; color:var(--text);">${data[0]?.name || '—'}</div>
+                </div>
+                <div style="background:var(--bg3); border:1px solid var(--border); padding:16px; text-align:center;">
+                    <div style="font-size:11px; color:var(--text3); text-transform:uppercase; margin-bottom:8px;">2nd Indicator</div>
+                    <div style="font-size:18px; font-weight:700; color:var(--text);">${data[1]?.name || '—'}</div>
+                </div>
+            `;
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    // Performans geçmişi
+    async function loadHistory() {
+        try {
+            const r    = await fetch(`/api/proxy/model/history/@Model.SelectedMarket`);
+            const data = await r.json();
+            
+            if (!data.length) {
+                document.getElementById('no-history').style.display = 'block';
+                document.getElementById('history-chart').style.display = 'none';
+                return;
+            }
+
+            const reversed = [...data].reverse();
+            const labels   = reversed.map((d, i) => `Run ${i+1}`);
+            const f1s      = reversed.map(d => d.f1_macro ? parseFloat(d.f1_macro).toFixed(4) : null);
+            const accs     = reversed.map(d => d.accuracy ? parseFloat(d.accuracy).toFixed(4) : null);
+
+            new Chart(document.getElementById('history-chart'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'F1 Macro',
+                            data: f1s,
+                            borderColor: '#388bfd',
+                            backgroundColor: 'rgba(56,139,253,0.1)',
+                            pointRadius: 5,
+                            tension: 0.3,
+                            fill: true,
+                        },
+                        {
+                            label: 'Accuracy',
+                            data: accs,
+                            borderColor: '#3fb950',
+                            backgroundColor: 'rgba(63,185,80,0.05)',
+                            pointRadius: 5,
+                            tension: 0.3,
+                            fill: false,
+                        }
+                    ]
+                },
+                options: {
+                    plugins: {
+                        legend: { labels: { color: '#8b949e' } }
+                    },
+                    scales: {
+                        y: {
+                            min: 0, max: 1,
+                            grid:  { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#8b949e' }
+                        },
+                        x: {
+                            ticks: { color: '#8b949e' },
+                            grid:  { display: false }
+                        }
+                    }
+                }
+            });
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    loadModelInfo();
+    loadHistory();
+</script>

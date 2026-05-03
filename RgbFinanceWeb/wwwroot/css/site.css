@@ -1,0 +1,379 @@
+/* ── Tema değişkenleri ── */
+body {
+    --bg:        #0d1117;
+    --bg2:       #161b22;
+    --bg3:       #1c2128;
+    --bg4:       #21262d;
+    --text:      #e6edf3;
+    --text2:     #8b949e;
+    --text3:     #484f58;
+    --border:    rgba(255,255,255,0.08);
+    --border2:   rgba(255,255,255,0.12);
+    --buy:       #3fb950;
+    --buy-bg:    rgba(63,185,80,0.1);
+    --sell:      #f85149;
+    --sell-bg:   rgba(248,81,73,0.1);
+    --accent:    #1f6feb;
+    --accent2:   #388bfd;
+    --nav-bg:    rgba(13,17,23,0.98);
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+body[data-theme="light"] {
+    --bg:        #e6e8ea;
+    --bg2:       #dbe1e7;
+    --bg3:       #dfe1e6;
+    --bg4:       #dcdcdc;
+    --text:      #1f2328;
+    --text2:     #797c80;
+    --text3:     #8c959f;
+    --border:    rgba(0,0,0,0.08);
+    --border2:   rgba(0,0,0,0.15);
+    --buy:       #1a7f37;
+    --buy-bg:    rgba(26,127,55,0.1);
+    --sell:      #cf222e;
+    --sell-bg:   rgba(207,34,46,0.1);
+    --accent:    #0969da;
+    --accent2:   #218bff;
+    --nav-bg:    rgba(229, 231, 233, 0.98);
+}
+
+/* ── Layout ── */
+html, body { min-height: 100vh; }
+main { padding-bottom: 60px; }
+
+/* ── Navbar ── */
+.navbar {
+    background: var(--nav-bg) !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 0;
+}
+
+.navbar .container { padding: 12px 20px; }
+
+.navbar-brand {
+    color: var(--text) !important;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.navbar-brand .brand-accent { color: var(--accent2); }
+
+.nav-link {
+    color: var(--text2) !important;
+    font-size: 14px;
+    padding: 6px 12px !important;
+    transition: color 0.1s;
+}
+
+.nav-link:hover { color: var(--text) !important; }
+
+.navbar-nav { gap: 2px; }
+
+#theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 5px 14px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#theme-toggle:hover { color: var(--text); border-color: var(--text2); }
+
+/* ── Page container ── */
+.page-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 36px 24px;
+}
+
+/* ── Section title ── */
+.section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 16px;
+}
+
+/* ── Alert box ── */
+.alert-box {
+    padding: 14px 18px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    border: 1px solid;
+}
+
+.alert-box.error   { background: var(--sell-bg); color: var(--sell); border-color: rgba(248,81,73,0.2); }
+.alert-box.info    { background: var(--buy-bg);  color: var(--buy);  border-color: rgba(63,185,80,0.2); }
+.alert-box.success { background: var(--buy-bg);  color: var(--buy);  border-color: rgba(63,185,80,0.2); }
+
+/* ── Stat kartları ── */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+@media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.stat-value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-value.buy    { color: var(--buy); }
+.stat-value.sell   { color: var(--sell); }
+.stat-value.accent { color: var(--accent2); }
+
+/* ── Tablo ── */
+.table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.table-wrap table { width: 100%; border-collapse: collapse; margin: 0; }
+
+.table-wrap thead tr { background: var(--bg3); }
+
+.table-wrap th {
+    padding: 10px 16px;
+    font-size: 11px;
+    color: var(--text3);
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    border-bottom: 1px solid var(--border);
+}
+
+.table-wrap td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tbody tr:hover td { background: var(--bg3); }
+
+.ticker-name { font-weight: 700; font-size: 15px; }
+
+/* ── Signal badge ── */
+.signal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    border: 1px solid;
+}
+
+.signal-badge.buy  { background: var(--buy-bg);  color: var(--buy);  border-color: rgba(63,185,80,0.25); }
+.signal-badge.sell { background: var(--sell-bg); color: var(--sell); border-color: rgba(248,81,73,0.25); }
+.signal-badge.error { background: var(--bg3); color: var(--text2); border-color: var(--border); }
+
+/* ── Confidence bar ── */
+.conf-wrap { display: flex; align-items: center; gap: 10px; }
+
+.conf-bar {
+    width: 80px;
+    height: 3px;
+    background: var(--bg4);
+}
+
+.conf-fill { height: 100%; }
+.conf-fill.buy  { background: var(--buy); }
+.conf-fill.sell { background: var(--sell); }
+
+.conf-text { font-size: 13px; color: var(--text2); min-width: 38px; }
+
+/* ── Butonlar ── */
+.btn-primary {
+    display: inline-block;
+    padding: 8px 18px;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border2);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-primary:hover { border-color: var(--text2); color: var(--text); text-decoration: none; }
+
+.btn-detail {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-detail:hover { border-color: var(--text); color: var(--text); text-decoration: none; }
+.btn-detail.active { border-color: var(--accent2); color: var(--accent2); background: transparent; }
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.btn-back:hover { color: var(--text); text-decoration: none; }
+
+/* ── Detail kartları ── */
+.detail-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.detail-card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.detail-card-header h5 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.detail-card-body { padding: 20px; }
+
+/* ── Metrics ── */
+.metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 600px) {
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.metric-item {
+    text-align: center;
+    padding: 14px 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+}
+
+.metric-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1;
+}
+
+.metric-value.buy  { color: var(--buy); }
+.metric-value.sell { color: var(--sell); }
+.metric-label { font-size: 12px; color: var(--text3); }
+
+/* ── Chart area ── */
+.chart-area img {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.chart-note {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 16px;
+    line-height: 1.65;
+}
+
+/* ── Out of training ── */
+.out-of-training {
+    display: inline-block;
+    font-size: 11px;
+    color: #d29922;
+    background: rgba(210,153,34,0.1);
+    padding: 2px 7px;
+    border: 1px solid rgba(210,153,34,0.2);
+}
+
+/* ── Form elemanları ── */
+.form-group { margin-bottom: 16px; }
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input {
+    display: block;
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    outline: none;
+}
+
+.form-input:focus { border-color: var(--accent2); }
+
+select.form-input { cursor: pointer; }
+
+/* ── Indicator list ── */
+.indicator-item { transition: background 0.1s; }
+.indicator-item:hover { background: var(--bg3); }
+.indicator-item:last-child { border-bottom: none !important; }
+
+/* ── User email ── */
+.user-email {
+    font-size: 13px;
+    color: var(--text3);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

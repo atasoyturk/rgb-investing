@@ -1,0 +1,82 @@
+@page
+@model PortfolioModel
+@{ ViewData["Title"] = "My Portfolio"; }
+
+<div class="page-container" style="max-width:600px;">
+
+    <form id="csrf-form">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <div class="section-title">My Portfolio</div>
+
+    @if (Model.SuccessMessage != null)
+    {
+        <div class="alert-box info">@Model.SuccessMessage</div>
+    }
+
+    <div class="form-group">
+        <label>Add Ticker</label>
+        <input type="text" id="ticker-search" class="form-input"
+               placeholder="Search (e.g. Apple, Garanti...)"
+               oninput="searchTickers(this.value)" autocomplete="off" />
+        <div id="search-results" style="border:1px solid var(--border); border-radius:8px; display:none; max-height:220px; overflow-y:auto; margin-top:4px;"></div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px;">Tracked Tickers</div>
+
+    @if (Model.Tickers.Any())
+    {
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            @foreach (var t in Model.Tickers)
+            {
+                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:12px 16px;">
+                    <div>
+                        <span style="font-weight:600;">@t.Symbol</span>
+                        <span style="font-size:12px; color:var(--accent2); margin-left:8px;">@t.Market</span>
+                    </div>
+                    <form method="post" asp-page-handler="Remove">
+                        <input type="hidden" name="symbol" value="@t.Symbol" />
+                        <button type="submit" style="background:none; border:none; color:var(--sell); cursor:pointer; font-size:13px;">Remove</button>
+                    </form>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert-box info">No tickers yet. Search and add above.</div>
+    }
+</div>
+
+<script>
+    async function searchTickers(q) {
+        const box = document.getElementById('search-results');
+        if (!q || q.length < 2) { box.style.display = 'none'; return; }
+        const res     = await fetch(`/api/proxy/search?q=${encodeURIComponent(q)}`);
+        const data    = await res.json();
+        const results = data.result || [];
+        if (!results.length) { box.style.display = 'none'; return; }
+        
+        box.style.display = 'block';
+        box.innerHTML = results.slice(0, 8).map(r => {
+            const market = r.symbol.endsWith('.IS') ? 'BIST100' : 'SP500';
+            return `<form method="post" action="/Portfolio?handler=Add">
+                <input type="hidden" name="__RequestVerificationToken" value="${document.querySelector('input[name=__RequestVerificationToken]')?.value ?? ''}" />
+                <input type="hidden" name="symbol" value="${r.symbol}" />
+                <input type="hidden" name="market" value="${market}" />
+                <button type="submit" style="width:100%; background:none; border:none; border-bottom:1px solid var(--border); padding:10px 14px; cursor:pointer; text-align:left; font-size:14px; color:var(--text);"
+                        onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+                    <strong>${r.symbol}</strong>
+                    <span style="color:var(--text2); font-size:12px; margin-left:8px;">${r.description}</span>
+                    <span style="color:var(--accent2); font-size:11px; margin-left:8px;">${market}</span>
+                </button>
+            </form>`;
+        }).join('');
+    }
+
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#ticker-search') && !e.target.closest('#search-results'))
+            document.getElementById('search-results').style.display = 'none';
+    });
+</script>

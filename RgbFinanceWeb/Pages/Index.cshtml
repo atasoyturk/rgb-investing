@@ -1,0 +1,212 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Signals";
+}
+
+<div class="page-container">
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert-box error">
+            <strong>Connection Error:</strong> @Model.ErrorMessage
+        </div>
+    }
+
+    @if (Model.Health != null && Model.Health.ModelLoaded)
+    {
+        <div class="alert-box info">
+            <strong>Model is Ready</strong> —
+            @Model.Health.WindowSize daily windows,
+            @Model.Health.FutureDays days after prediction
+            @if (Model.Health.F1Macro.HasValue)
+            {
+                <span style="float:right">F1: @Model.Health.F1Macro.Value.ToString("P1")</span>
+            }
+        </div>
+    }
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-label">Total Stock</div>
+            <div class="stat-value">
+                @(Model.SignalsTable?.Signals.Count ?? 0)
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">BUY Signal</div>
+            <div class="stat-value buy">
+                @(Model.SignalsTable?.Signals.Count(s => s.Signal == "BUY") ?? 0)
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">SELL Signal</div>
+            <div class="stat-value sell">
+                @(Model.SignalsTable?.Signals.Count(s => s.Signal == "SELL") ?? 0)
+            </div>
+        </div>
+        <div class="stat-card">
+        <div class="stat-label">Model Accuracy</div>
+        <div class="stat-value accent" style="font-size:14px; line-height:1.4;">
+            @if (Model.SignalsTable?.ModelF1 != null)
+            {
+                var f1 = Model.SignalsTable.ModelF1.Value;
+                if (f1 >= 0.55)
+                {
+                    <span style="color:var(--buy)">Strong</span>
+                    <div style="font-size:11px; color:var(--text2); margin-top:4px;">Model signals are reliable</div>
+                }
+                else if (f1 >= 0.45)
+                {
+                    <span style="color:#f39c12">Moderate</span>
+                    <div style="font-size:11px; color:var(--text2); margin-top:4px;">Use with caution</div>
+                }
+                else
+                {
+                    <span style="color:var(--sell)">Weak</span>
+                    <div style="font-size:11px; color:var(--text2); margin-top:4px;">Low confidence signals</div>
+                }
+            }
+            else
+            {
+                <span>—</span>
+            }
+        </div>
+    </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+        <div class="section-title" style="margin-bottom:0;">Market</div>
+        <a href="?market=SP500" class="btn-detail @(Model.SelectedMarket == "SP500" ? "active" : "")">S&P 500</a>
+        <a href="?market=NASDAQ100" class="btn-detail @(Model.SelectedMarket == "NASDAQ100" ? "active" : "")">NASDAQ 100</a>
+        <a href="?market=BIST100" class="btn-detail @(Model.SelectedMarket == "BIST100" ? "active" : "")">BIST 100</a>
+        <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=@Model.MinTrust&showPortfolio=@(!Model.ShowPortfolio)" 
+            class="btn-detail @(Model.ShowPortfolio ? "active" : "")" style="margin-left:8px;">
+                @(Model.ShowPortfolio ? "★ Portfolio" : "☆ Portfolio")
+        </a>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px;">
+            <a href="?market=@Model.SelectedMarket&signal=ALL&minTrust=@Model.MinTrust" 
+            class="btn-detail @(Model.SelectedSignal == "ALL" ? "active" : "")">All</a>
+            <a href="?market=@Model.SelectedMarket&signal=BUY&minTrust=@Model.MinTrust" 
+            class="btn-detail @(Model.SelectedSignal == "BUY" ? "active" : "")">▲ BUY</a>
+            <a href="?market=@Model.SelectedMarket&signal=SELL&minTrust=@Model.MinTrust" 
+            class="btn-detail @(Model.SelectedSignal == "SELL" ? "active" : "")">▼ SELL</a>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:13px; color:var(--text2);">Min Trust:</span>
+            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=0" 
+            class="btn-detail @(Model.MinTrust == 0 ? "active" : "")">All</a>
+            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=60" 
+            class="btn-detail @(Model.MinTrust == 60 ? "active" : "")">60%+</a>
+            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=70" 
+            class="btn-detail @(Model.MinTrust == 70 ? "active" : "")">70%+</a>
+            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=80" 
+            class="btn-detail @(Model.MinTrust == 80 ? "active" : "")">80%+</a>
+            
+        </div>
+        
+        <div>
+            <input type="text" id="ticker-search-filter" placeholder="Search ticker..." 
+                class="form-input" style="width:180px; padding:5px 10px; font-size:13px;"
+                oninput="filterTable(this.value)" />
+        </div>
+        
+        <div style="font-size:12px; color:var(--text2); max-width:320px;">
+            <strong>What is Trust?</strong> Indicates how confident the model is in this signal. A signal strength of 70% or higher means that approximately 50% is unclear.
+        </div>
+    </div>
+
+    <div class="section-title">Signal Table</div>
+
+    @if (Model.SignalsTable != null && Model.SignalsTable.Signals.Any())
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Stock</th>
+                        <th>Signal</th>
+                        <th>Trust</th>
+                        <th>Last Price</th>
+                        <th>Prediction</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.SignalsTable.Signals.OrderByDescending(x => x.Confidence))
+                    {
+                        <tr class="signal-table-row" data-ticker="@s.Ticker">
+                            <td>
+                                <div class="ticker-name">@s.Ticker</div>
+                                @if (!s.InTrainingSet)
+                                {
+                                    <span class="out-of-training">Out of Training</span>
+                                }
+                            </td>
+                            <td>
+                                @if (s.Signal == "BUY")
+                                {
+                                    <span class="signal-badge buy">▲ BUY</span>
+                                }
+                                else if (s.Signal == "SELL")
+                                {
+                                    <span class="signal-badge sell">▼ SELL</span>
+                                }
+                                else
+                                {
+                                    <span class="signal-badge error">@s.Signal</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="conf-wrap">
+                                    <div class="conf-bar">
+                                        <div class="conf-fill @(s.Signal == "BUY" ? "buy" : "sell")"
+                                             style="width: @((s.Confidence * 100).ToString("F0"))%">
+                                        </div>
+                                    </div>
+                                    <span class="conf-text">@s.Confidence.ToString("P0")</span>
+                                </div>
+                            </td>
+                            <td>
+                                @if (s.LastPrice.HasValue)
+                                {
+                                    <span>@s.Currency@s.LastPrice.Value.ToString("F2")</span>
+
+                                }
+                                else
+                                {
+                                    <span style="color:var(--text2)">—</span>
+                                }
+                            </td>
+                            <td>
+                                <small style="color:var(--text2)">@s.FutureDays days</small>
+                            </td>
+                            <td>
+                                <a href="/Detail?ticker=@s.Ticker&market=@Model.SelectedMarket" class="btn-detail">Examine</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (Model.ErrorMessage == null)
+    {
+        <div class="alert-box info">Signal cannot be found.</div>
+    }
+
+    <script>
+        function filterTable(q) {
+            const rows = document.querySelectorAll('.signal-table-row');
+            const lower = q.toLowerCase();
+            rows.forEach(row => {
+                const ticker = row.dataset.ticker.toLowerCase();
+                row.style.display = ticker.includes(lower) ? '' : 'none';
+            });
+        }
+    </script>
+
+</div>

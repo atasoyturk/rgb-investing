@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RGB Investing</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/RgbFinanceWeb.styles.css" asp-append-version="true" />
+    <link rel="icon" type="image/png" href="~/images/logo.png" />
+</head>
+<body data-theme="light">
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark mb-3">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-page="/Index">
+                    <img src="~/images/logo.png" style="height:32px; margin-right:8px;" />
+                    <span style="color:#d3d5dc;">RGB Investing</span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target=".navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-page="/Index">Signals</a>
+                        </li>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-page="/Train">Train</a>
+                            </li>
+                        }
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-page="/Indicators">Indicators</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-page="/Portfolio">Portfolio</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-page="/Performance">Performance</a>
+                        </li>
+                    </ul>
+                    
+                    <ul class="navbar-nav align-items-center gap-2">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <span class="nav-link" style="font-size:13px; opacity:0.6;">@User.Identity.Name</span>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Settings">⚙</a>
+                            </li>
+                            <li class="nav-item">
+                                <form method="post" action="/Logout">
+                                    <button type="submit" class="nav-link" style="background:none;border:none;cursor:pointer;padding:0;">Logout</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Login">Login</a>
+                            </li>
+                        }
+                        <li class="nav-item">
+                            <button id="theme-toggle">Dark Theme</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main">
+        @RenderBody()
+    </main>
+
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,153 @@
+@page
+@model TrainModel
+@{ ViewData["Title"] = "Train Model"; }
+
+<div class="page-container">
+
+    <div class="section-title">Train New Model</div>
+
+    @if (Model.JobId != null)
+    {
+        <div class="alert-box info" id="status-box">
+            Training started. Job ID: <strong>@Model.JobId</strong>
+            <span id="status-text"> — checking status...</span>
+        </div>
+        <script>
+            const jobId = "@Model.JobId";
+            const poll = setInterval(async () => {
+                const res = await fetch(`/api/proxy/train/${jobId}`);
+                const data = await res.json();
+                const el = document.getElementById("status-text");
+                if (data.status === "done") {
+                    clearInterval(poll);
+                    el.innerHTML = ` — Done! Accuracy: ${(data.accuracy * 100).toFixed(1)}%, F1: ${data.f1_macro.toFixed(4)}`;
+                    document.getElementById("status-box").className = "alert-box success";
+                } else if (data.status === "error") {
+                    clearInterval(poll);
+                    el.innerHTML = ` — Error: ${data.detail}`;
+                    document.getElementById("status-box").className = "alert-box error";
+                }
+            }, 3000);
+        </script>
+    }
+
+    <form method="post">
+        <div class="form-group">
+            <label>Market</label>
+            <select name="Market" class="form-input">
+                <option value="SP500">S&P 500</option>
+                <option value="NASDAQ100">NASDAQ 100</option>
+                <option value="BIST100">BIST 100</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" name="FineTune" value="true" id="fine-tune-check" />
+                <span>Fine-tune from global model</span>
+                <span style="font-size:12px; color:var(--text2);">(If global model is exist.)</span>
+            </label>
+        </div>
+        <div class="form-group">
+            <label>Tickers</label>
+            <input type="text" id="ticker-search" class="form-input"
+                placeholder="Search (e.g. Apple, Garanti, Taiwan...)"
+                oninput="searchTickers(this.value)" autocomplete="off" />
+            <div id="search-results" style="border:1px solid var(--border); border-radius:8px; display:none; max-height:220px; overflow-y:auto; margin-top:4px;"></div>
+            <div id="selected-tickers" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;"></div>
+            <input type="hidden" name="Tickers" id="tickers-hidden" />
+        </div>
+        <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" name="StartDate" id="start-date" class="form-input" required />
+        </div>
+        <div class="form-group">
+            <label>End Date</label>
+            <input type="date" name="EndDate" id="end-date" class="form-input" required />
+        </div>
+
+        <script>
+            const today = new Date();
+            const tenYearsAgo = new Date();
+            tenYearsAgo.setFullYear(today.getFullYear() - 10);
+
+            document.getElementById('end-date').value = today.toISOString().split('T')[0];
+            document.getElementById('start-date').value = tenYearsAgo.toISOString().split('T')[0];
+        </script>
+        <input type="hidden" name="WindowSize" value="400" />
+        <div class="form-group">
+            <label>Future Days</label>
+            <select name="FutureDays" class="form-input">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Stride</label>
+            <select name="Stride" class="form-input">
+                <option value="1">1</option>
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Experiment Name</label>
+            <input type="text" name="Name" value="my_experiment" class="form-input" required />
+        </div>
+        <button type="submit" class="btn-primary">Start Training</button>
+    </form>
+
+    <script>
+        let selected = [];
+
+        async function searchTickers(q) {
+            const box = document.getElementById('search-results');
+            if (!q || q.length < 2) { box.style.display = 'none'; return; }
+            const res     = await fetch(`/api/proxy/search?q=${encodeURIComponent(q)}`);
+            const data    = await res.json();
+            const results = data.result || [];
+            if (!results.length) { box.style.display = 'none'; return; }
+            box.style.display = 'block';
+            box.innerHTML = results.slice(0, 8).map(r =>
+                `<div onclick="addTicker('${r.symbol}', '${r.description.replace(/'/g, '')}')"
+                    style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:14px;"
+                    onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+                    <strong>${r.symbol}</strong>
+                    <span style="color:var(--text2); font-size:12px; margin-left:8px;">${r.description}</span>
+                </div>`
+            ).join('');
+        }
+
+        function addTicker(symbol, name) {
+            if (selected.find(s => s.symbol === symbol)) return;
+            selected.push({ symbol, name });
+            render();
+            document.getElementById('search-results').style.display = 'none';
+            document.getElementById('ticker-search').value = '';
+        }
+
+        function removeTicker(symbol) {
+            selected = selected.filter(s => s.symbol !== symbol);
+            render();
+        }
+
+        function render() {
+            document.getElementById('tickers-hidden').value = selected.map(s => s.symbol).join(',');
+            document.getElementById('selected-tickers').innerHTML = selected.map(s =>
+                `<span style="background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+                    <strong>${s.symbol}</strong>
+                    <span style="color:var(--text2); font-size:11px;">${s.name}</span>
+                    <span onclick="removeTicker('${s.symbol}')" style="cursor:pointer; color:var(--sell); margin-left:4px;">✕</span>
+                </span>`
+            ).join('');
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('#ticker-search') && !e.target.closest('#search-results'))
+                document.getElementById('search-results').style.display = 'none';
+        });
+    </script>
+
+</div>

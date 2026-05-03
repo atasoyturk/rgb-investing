@@ -1,0 +1,506 @@
+@page
+@model LandingModel
+@{
+    ViewData["Title"] = "RGB Investing — AI-Powered Stock Signals";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RGB Investing</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="icon" type="image/png" href="~/images/logo.png" />
+
+    <style supress-error="BL9992">
+
+
+        /* ── Navbar ── */
+        .land-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 48px;
+            background: rgba(5,8,16,0.6);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .land-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #d3d5dc;
+            text-decoration: none;
+        }
+
+        .land-logo span { color: #d3d5dc; }
+
+        .land-nav-links { display: flex; gap: 12px; }
+
+        .btn-nav-login {
+            padding: 7px 18px;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e8eaf0;
+            text-decoration: none;
+            font-size: 14px;
+            background: transparent;
+        }
+
+        .btn-nav-login:hover {
+            border-color: rgba(255,255,255,0.5);
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .btn-nav-register {
+            padding: 7px 18px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e8eaf0;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn-nav-register:hover {
+            border-color: rgba(255,255,255,0.5);
+            color: #fff;
+            text-decoration: none;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 24px 80px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(91,110,245,0.12);
+            border: 1px solid rgba(91,110,245,0.3);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            color: #7c8ff7;
+            margin-bottom: 32px;
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 6px; height: 6px;
+            background: #cd0000;
+            border-radius: 50%;
+        }
+
+        .hero-title {
+            font-size: clamp(42px, 7vw, 80px);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -2px;
+            margin-bottom: 24px;
+        }
+
+        .hero-title .gradient {
+            background: linear-gradient(135deg, #ff4d6d, #00d084, #5b6ef5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: 18px;
+            color: #7b82a0;
+            max-width: 560px;
+            line-height: 1.7;
+            margin-bottom: 44px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+
+        /* ── Stats ── */
+        .hero-stats {
+            display: flex;
+            gap: 48px;
+            margin-top: 72px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .hero-stat { text-align: center; }
+        .hero-stat-value { font-size: 32px; font-weight: 800; color: #e8eaf0; }
+        .hero-stat-label { font-size: 13px; color: #7b82a0; margin-top: 4px; }
+
+        /* ── Features ── */
+        .features {
+            position: relative;
+            z-index: 10;
+            padding: 100px 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .features-title {
+            text-align: center;
+            font-size: 38px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .features-sub {
+            text-align: center;
+            color: #7b82a0;
+            font-size: 16px;
+            margin-bottom: 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @@media (max-width: 768px) {
+            .features-grid { grid-template-columns: 1fr; }
+        }
+
+        .feature-card {
+            background: rgba(17,20,32,0.8);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 16px;
+            padding: 28px;
+            transition: border-color 0.2s, transform 0.2s;
+            backdrop-filter: blur(8px);
+        }
+
+
+        .feature-icon {
+            width: 44px; height: 44px;
+            background: rgba(91,110,245,0.12);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 18px;
+        }
+
+        .feature-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #e8eaf0;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: #7b82a0;
+            line-height: 1.7;
+        }
+
+        /* ── How it works ── */
+        .how {
+            position: relative;
+            z-index: 10;
+            padding: 100px 24px;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .how-title {
+            font-size: 38px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .how-sub {
+            color: #7b82a0;
+            font-size: 16px;
+            margin-bottom: 60px;
+        }
+
+        .how-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .how-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            text-align: left;
+            padding: 28px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .how-step:last-child { border-bottom: none; }
+
+        .how-step-num {
+            width: 40px; height: 40px;
+            background: rgba(91,110,245,0.15);
+            border: 1px solid rgba(91,110,245,0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 800;
+            color: #7c8ff7;
+            flex-shrink: 0;
+        }
+
+        .how-step-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #e8eaf0;
+        }
+
+        .how-step-desc {
+            font-size: 14px;
+            color: #7b82a0;
+            line-height: 1.7;
+        }
+
+        /* ── CTA bottom ── */
+        .cta-bottom {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 100px 24px;
+        }
+
+        .cta-bottom-title {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: -1px;
+        }
+
+        .cta-bottom-sub {
+            color: #7b82a0;
+            font-size: 16px;
+            margin-bottom: 36px;
+        }
+
+
+        /* ── Ticker bar ── */
+        .ticker-bar {
+            position: relative;
+            z-index: 10;
+            background: rgba(17,20,32,0.6);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 12px 0;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+        }
+
+        .ticker-track {
+            display: flex;
+            gap: 48px;
+            animation: tickerScroll 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        .ticker-item {
+            font-size: 13px;
+            color: #7b82a0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-cta-primary {
+            display: inline-block;
+            padding: 12px 28px;
+            background: transparent;
+            color: #e8eaf0;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-cta-primary:hover {
+            border-color: rgba(255,255,255,0.6);
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .btn-cta-secondary {
+            display: inline-block;
+            padding: 12px 28px;
+            background: transparent;
+            color: #8b949e;
+            font-size: 15px;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .btn-cta-secondary:hover {
+            border-color: rgba(255,255,255,0.3);
+            color: #e8eaf0;
+            text-decoration: none;
+        }
+
+        .ticker-item .buy  { color: #00d084; font-weight: 600; }
+        .ticker-item .sell { color: #ff4d6d; font-weight: 600; }
+
+        @@keyframes tickerScroll {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+    </style>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="land-nav">
+    <a href="/" class="land-logo">
+        <img src="/images/logo.png" style="height:28px; margin-right:8px; vertical-align:middle;" />
+        RGB <span>Investing</span>
+    </a>
+    <div class="land-nav-links">
+        <a href="/Login" class="btn-nav-login">Login</a>
+        <a href="/Register" class="btn-nav-register">Get Started</a>
+    </div>
+</nav>
+
+<!-- Ticker bar -->
+<div class="ticker-bar" style="margin-top:72px;">
+    <div class="ticker-track">
+        <span class="ticker-item">AAPL <span class="sell">▼ SELL</span> $189.30</span>
+        <span class="ticker-item">MSFT <span class="buy">▲ BUY</span> $415.20</span>
+        <span class="ticker-item">NVDA <span class="sell">▼ SELL</span> $875.40</span>
+        <span class="ticker-item">TSLA <span class="buy">▲ BUY</span> $182.60</span>
+        <span class="ticker-item">JPM <span class="sell">▼ SELL</span> $198.50</span>
+        <span class="ticker-item">GOOGL <span class="buy">▲ BUY</span> $175.80</span>
+        <span class="ticker-item">AMZN <span class="sell">▼ SELL</span> $185.20</span>
+        <span class="ticker-item">META <span class="buy">▲ BUY</span> $505.30</span>
+        <span class="ticker-item">AAPL <span class="sell">▼ SELL</span> $189.30</span>
+        <span class="ticker-item">MSFT <span class="buy">▲ BUY</span> $415.20</span>
+        <span class="ticker-item">NVDA <span class="sell">▼ SELL</span> $875.40</span>
+        <span class="ticker-item">TSLA <span class="buy">▲ BUY</span> $182.60</span>
+        <span class="ticker-item">JPM <span class="sell">▼ SELL</span> $198.50</span>
+        <span class="ticker-item">GOOGL <span class="buy">▲ BUY</span> $175.80</span>
+        <span class="ticker-item">AMZN <span class="sell">▼ SELL</span> $185.20</span>
+        <span class="ticker-item">META <span class="buy">▲ BUY</span> $505.30</span>
+    </div>
+</div>
+
+<!-- Hero -->
+<section class="hero" style="position:relative; background: url('/images/hero-bg.jpg') center/cover no-repeat;">
+    <div style="position:absolute; inset:0; background: linear-gradient(135deg, rgba(5,8,16,0.85) 0%, rgba(5,8,16,0.6) 100%);"></div>
+    <div style="position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; text-align:center; padding:120px 24px 80px;">
+    
+        <h1 class="hero-title">
+            See the market<br/>
+            through <span class="gradient">a new lens</span>
+        </h1>
+        <p class="hero-sub">
+            Most investors spend years learning which indicators to use and when. 
+            We let a deep learning model figure that out.
+            So you can focus on the decision, not the technical analysis.
+        </p>
+        <div class="hero-cta">
+            <a href="/Register" class="btn-cta-primary">Start for Free</a>
+            <a href="/Login" class="btn-cta-secondary">Sign In</a>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+    <h2 class="features-title">A different way of thinking</h2>
+    <p class="features-sub">Traditional analysis asks you to choose the right indicators. We ask the model.</p>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-title">Indicators that actually work together</div>
+            <div class="feature-desc">RSI, MACD, Bollinger Bands — each tells part of the story. The real signal is in how they interact. Our model learns those interactions automatically.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-title">No manual tuning</div>
+            <div class="feature-desc">You don't need to know which indicator combination works best for Apple or for Garanti. The model learns a unique pattern for each market and adapts over time.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-title">Transparent decisions</div>
+            <div class="feature-desc">Every signal comes with a visual explanation — you can see exactly which time period and which indicators influenced the model's decision. No black box.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-title">Your portfolio, your signals</div>
+            <div class="feature-desc">Add the stocks you follow. Get BUY or SELL signals tailored to your watchlist — S&P 500, NASDAQ, or BIST 100.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-title">Always current</div>
+            <div class="feature-desc">Signals are updated daily after market close. The model retrains monthly to stay aligned with current market conditions.</div>
+        </div>
+    </div>
+</section>
+
+<!-- How it works -->
+<section class="how">
+    <h2 class="how-title">How it works</h2>
+    <p class="how-sub">Three steps. No manual indicator selection required.</p>
+    <div class="how-steps">
+        <div class="how-step">
+            <div class="how-step-num">1</div>
+            <div>
+                <div class="how-step-title">Market data becomes an image</div>
+                <div class="how-step-desc">The last trading days of price and volume data are transformed into 16 technical indicators, then reshaped into a grid. 
+                                           Just like a photograph of the market's recent behavior.</div>
+            </div>
+        </div>
+        <div class="how-step">
+            <div class="how-step-num">2</div>
+            <div>
+                <div class="how-step-title">The model reads the pattern</div>
+                <div class="how-step-desc">It learns which indicator combinations historically preceded price increases — without being told which ones to look for.</div>
+            </div>
+        </div>
+        <div class="how-step">
+            <div class="how-step-num">3</div>
+            <div>
+                <div class="how-step-title">You get a signal and an explanation</div>
+                <div class="how-step-desc">You receive a BUY or SELL signal with a confidence score, plus a heatmap showing exactly which part of the  window the model focused on - full transparency, no black box.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Bottom -->
+<section class="cta-bottom">
+    <h2 class="cta-bottom-title">Ready to see differently?</h2>
+    <p class="cta-bottom-sub">Join RGB Investing, add your stocks, get your signals. 
+                              No setup, no manual configuration.</p>
+    <a href="/Register" class="btn-cta-primary" style="font-size:16px; padding:14px 36px;">Create Free Account</a>
+</section>
+
+
+</body>
+</html>

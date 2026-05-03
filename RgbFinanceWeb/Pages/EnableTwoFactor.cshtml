@@ -1,0 +1,38 @@
+@page
+@model EnableTwoFactorModel
+@{ ViewData["Title"] = "Two-Factor Authentication"; }
+
+<div class="page-container" style="max-width:480px; margin:60px auto; padding-bottom:200px;">
+    <div class="section-title">Two-Factor Authentication</div>
+
+    @if (Model.IsEnabled)
+    {
+        <div class="alert-box info">2FA is already enabled on your account.</div>
+    }
+    else
+    {
+        <p>Scan this QR code with Google Authenticator or Microsoft Authenticator:</p>
+        <div style="margin:20px 0;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=@Uri.EscapeDataString(Model.AuthenticatorUri ?? string.Empty)" />
+        </div>
+        <p style="font-size:13px; color:gray;">Or enter this key manually: <strong>@Model.SharedKey</strong></p>
+
+        <form method="post">
+            <div style="margin-bottom:16px; min-height:60px;">
+                <label style="display:block; margin-bottom:6px; font-size:13px;">Verification Code</label>
+                <input type="text" name="Code" placeholder="6-digit code" required 
+                    style="width:100%; padding:9px 12px; font-size:14px; border:1px solid #444; border-radius:8px; background:#1e2035; color:#e9ecef; display:block;" />
+            </div>
+            <button type="submit" class="btn-primary">Enable 2FA</button>
+        </form>
+    }
+
+    @if (Model.SuccessMessage != null)
+    {
+        <div class="alert-box success" style="margin-top:16px;">@Model.SuccessMessage</div>
+    }
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert-box error" style="margin-top:16px;">@Model.ErrorMessage</div>
+    }
+</div>

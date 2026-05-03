@@ -1,0 +1,310 @@
+import os
+import time
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.responses import Response
+from api.predictor import Predictor
+from api.schemas import SignalResponse, SignalsTableResponse, HealthResponse, TrainRequest
+from src.experiment_config import ExperimentConfig
+from src.data import fetch_data
+from src.features import FeatureBuilder, FEATURE_CATALOG
+from src.builder import ExperimentBuilder
+
+predictors: dict[str, Predictor] = {}
+train_status: dict   = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global predictors
+    print("[API] Starting...")
+    from src.tickers import MARKET_TICKERS
+    for market in MARKET_TICKERS.keys():
+        path = "saved_model_global" if market == "SP500" else f"saved_model_{market.lower()}"
+        try:
+            predictors[market] = Predictor(model_path=path)
+            print(f"[API] Loaded model: {market}")
+        except FileNotFoundError:
+            print(f"[API] No model found for {market}, skipping.")
+    print("[API] Ready.")
+    yield
+    print("[API] Shutting down.")
+
+
+app = FastAPI(
+    title="RGB Finance API",
+    description="BUY/SELL signal generator — Deep RGB Encoding for Finance",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+
+from api.cache import get_cached_signals, set_cached_signals
+
+@app.get("/signals", response_model=SignalsTableResponse, tags=["Signals"])
+def get_all_signals(market: str = "SP500"):
+    try:
+        pred = predictors.get(market)
+        if pred is None:
+            raise HTTPException(status_code=404, detail=f"No model for market: {market}")
+
+        # Cache'den oku
+        cached = get_cached_signals(market)
+        if cached:
+            print(f"[Cache] HIT {market}")
+            return SignalsTableResponse(
+                signals=[SignalResponse(**s) for s in cached["signals"]],
+                model_f1=cached.get("model_f1"),
+                model_accuracy=cached.get("model_accuracy"),
+            )
+
+        # Cache yok — hesapla
+        print(f"[Cache] MISS {market} — computing...")
+        results = pred.predict_all()
+        table   = SignalsTableResponse(
+            signals=[SignalResponse(**r) for r in results],
+            model_f1=pred.meta.get("f1_macro"),
+            model_accuracy=pred.meta.get("accuracy"),
+        )
+
+        # Cache'e yaz
+        set_cached_signals(market, {
+            "signals":        [s.dict() for s in table.signals],
+            "model_f1":       table.model_f1,
+            "model_accuracy": table.model_accuracy,
+        })
+
+        return table
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/signals/{ticker}", response_model=SignalResponse, tags=["Signals"])
+def get_signal(ticker: str, market: str = "SP500"):
+    try:
+        pred = predictors.get(market)
+        if pred is None:
+            raise HTTPException(status_code=404, detail=f"No model for market: {market}")
+        return SignalResponse(**pred.predict(ticker.upper()))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/indicators/{market}", tags=["Visualisation"])
+def get_indicators(market: str):
+    try:
+        pred = predictors.get(market)
+        if pred is None:
+            raise HTTPException(status_code=404, detail=f"No model for market: {market}")
+        
+        weights      = pred.model.layers[1].layer.layer.get_weights()[0]
+        feature_cols = pred.meta["feature_cols"]
+        
+        result = []
+        for i, name in enumerate(feature_cols):
+            if i < weights.shape[0]:
+                r = round(float(weights[i, 0]), 4)
+                g = round(float(weights[i, 1]), 4)
+                b = round(float(weights[i, 2]), 4)
+                absolute = round(float(abs(r) + abs(g) + abs(b)), 4)
+                result.append({
+                    "name":     name,
+                    "r":        r,
+                    "g":        g,
+                    "b":        b,
+                    "absolute": absolute,
+                })
+        
+        result.sort(key=lambda x: x["absolute"], reverse=True)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/model/history/{market}", tags=["Monitoring"])
+def get_model_history(market: str):
+    try:
+        import mlflow
+        from config import MLFLOW_TRACKING_URI
+        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+        
+        experiment = mlflow.get_experiment_by_name(market)
+        if experiment is None:
+            return []
+        
+        runs = mlflow.search_runs(
+            experiment_ids=[experiment.experiment_id],
+            order_by=["start_time DESC"],
+            max_results=20,
+        )
+        
+        result = []
+        for _, run in runs.iterrows():
+            result.append({
+                "date":     run.get("start_time", "").isoformat() if hasattr(run.get("start_time", ""), "isoformat") else str(run.get("start_time", "")),
+                "f1_macro": run.get("metrics.f1_macro"),
+                "accuracy": run.get("metrics.accuracy"),
+                "name":     run.get("tags.mlflow.runName", ""),
+            })
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/gradcam/{ticker}", tags=["Visualisation"])
+def get_gradcam(ticker: str, market: str = "SP500"):
+    try:
+        pred = predictors.get(market)
+        if pred is None:
+            raise HTTPException(status_code=404, detail=f"No model for market: {market}")
+        return Response(content=pred.gradcam_png(ticker.upper()), media_type="image/png")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/weights", tags=["Visualisation"])
+def get_weights(market: str = "SP500"):
+    try:
+        pred = predictors.get(market)
+        if pred is None:
+            raise HTTPException(status_code=404, detail=f"No model for market: {market}")
+        return Response(content=pred.weights_png(), media_type="image/png")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/weights_json", tags=["Visualisation"])
+def get_weights_json(market: str = "SP500"):
+    try:
+        pred = predictors.get(market)
+        if pred is None:
+            raise HTTPException(status_code=404, detail=f"No model for market: {market}")
+        weights      = pred.model.layers[1].layer.layer.get_weights()[0]
+        feature_cols = pred.meta["feature_cols"]
+        result = {}
+        for i, name in enumerate(feature_cols):
+            if i < weights.shape[0]:
+                result[name] = {
+                    "R": round(float(weights[i, 0]), 4),
+                    "G": round(float(weights[i, 1]), 4),
+                    "B": round(float(weights[i, 2]), 4),
+                }
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health", response_model=HealthResponse, tags=["System"])
+def health():
+    loaded = list(predictors.keys())
+    if not loaded:
+        return HealthResponse(status="no_model", model_loaded=False,
+                              tickers=[], window_size=0, future_days=0, f1_macro=None)
+    pred = next(iter(predictors.values()))
+    return HealthResponse(
+        status="ok",
+        model_loaded=True,
+        tickers=pred.meta.get("tickers", []),
+        window_size=pred.meta.get("window_size", 0),
+        future_days=pred.meta.get("future_days", 0),
+        f1_macro=pred.meta.get("f1_macro"),
+    )
+
+
+def _run_training(job_id: str, req: TrainRequest):
+    global predictors
+    try:
+        from src.tickers import MARKET_TICKERS
+        tickers      = req.tickers if req.tickers else MARKET_TICKERS.get(req.market, [])
+        cfg          = ExperimentConfig(
+            tickers=tickers, start_date=req.start_date, end_date=req.end_date,
+            window_size=req.window_size, stride=req.stride, future_days=req.future_days,
+        )
+        data         = fetch_data(tickers=cfg.tickers, start=cfg.start_date, end=cfg.end_date)
+        builder      = FeatureBuilder(data)
+        feature_cols = list(FEATURE_CATALOG.keys())
+        eb           = ExperimentBuilder()
+
+        import mlflow
+        from config import MLFLOW_TRACKING_URI
+        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+        mlflow.set_experiment(req.market)
+
+        exp = eb.build_experiment(
+            name=req.name, window_size=cfg.window_size, feature_cols=feature_cols,
+            future_days=cfg.future_days, stride=cfg.stride, builder=builder,
+            tickers=cfg.tickers, cfg=cfg,
+        )
+        exp.prepare_data()
+        
+        if req.fine_tune and os.path.exists("saved_model_global"):
+            exp.fine_tune(base_model_path="saved_model_global")
+        else:
+            exp.train()
+        
+        exp.evaluate()
+        
+        save_path = "saved_model_global" if req.name == "global_model" else f"saved_model_{req.market.lower()}"
+        exp.save(save_path)
+        
+        from api.cache import invalidate_cache
+        invalidate_cache(req.market)
+        
+        predictors[req.market] = Predictor(model_path=save_path)
+
+        train_status[job_id] = {
+            "status":   "done",
+            "market":   req.market,
+            "accuracy": round(exp.accuracy, 4),
+            "f1_macro": round(exp.f1_macro, 4),
+        }
+    except Exception as e:
+        train_status[job_id] = {"status": "error", "detail": str(e)}
+
+@app.post("/train", tags=["Training"])
+def train_model(req: TrainRequest, background_tasks: BackgroundTasks):
+    job_id = f"train_{int(time.time())}"
+    train_status[job_id] = {"status": "running"}
+    background_tasks.add_task(_run_training, job_id, req)
+    return {"job_id": job_id, "status": "started"}
+
+
+@app.get("/train/{job_id}", tags=["Training"])
+def get_train_status(job_id: str):
+    if job_id not in train_status:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return train_status[job_id]
+
+@app.post("/predictions/save", tags=["Monitoring"])
+def save_predictions(market: str, callback_url: str = "http://host.docker.internal:5000/api/predictions"):
+    try:
+        pred    = predictors.get(market)
+        if pred is None:
+            raise HTTPException(status_code=404, detail=f"No model for market: {market}")
+        results = pred.predict_all()
+        
+        import requests
+        from datetime import datetime, timedelta
+        
+        today       = datetime.now().date()
+        target_date = today + timedelta(days=pred.meta["future_days"])
+        
+        payload = [{
+            "ticker":          r["ticker"],
+            "market":          market,
+            "signal":          r["signal"],
+            "confidence":      r["confidence"],
+            "price_at_signal": r["last_price"] or 0,
+            "predicted_date":  str(today),
+            "target_date":     str(target_date),
+        } for r in results if r["signal"] != "ERROR"]
+
+        requests.post(callback_url, json=payload, timeout=10)
+        return {"saved": len(payload)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

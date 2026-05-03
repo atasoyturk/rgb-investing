@@ -1,0 +1,23 @@
+@page
+@model LoginTwoFactorModel
+@{ ViewData["Title"] = "Two-Factor Login"; }
+
+<div class="page-container" style="max-width:420px; margin:60px auto;">
+    <div class="section-title">Two-Factor Authentication</div>
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert-box error">@Model.ErrorMessage</div>
+    }
+
+    <p>Enter the 6-digit code from your authenticator app.</p>
+
+    <form method="post">
+        <input type="hidden" name="Email" value="@Model.Email" />
+        <div class="form-group">
+            <label>Authentication Code</label>
+            <input type="text" name="Code" class="form-input" placeholder="6-digit code" required />
+        </div>
+        <button type="submit" class="btn-primary">Verify</button>
+    </form>
+</div>

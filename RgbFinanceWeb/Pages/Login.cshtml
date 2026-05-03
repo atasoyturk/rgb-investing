@@ -1,0 +1,32 @@
+@page
+@model LoginModel
+@{ ViewData["Title"] = "Login"; }
+
+<div style="min-height:100vh; position:relative; background:url('/images/trading.jpg') center/cover no-repeat; display:flex; align-items:center; justify-content:center;">
+    <div style="position:absolute; inset:0; background:rgba(5,8,16,0.75);"></div>
+    <div style="position:relative; z-index:1; width:100%; max-width:420px; padding:24px;">
+
+        <div class="section-title">Login</div>
+
+        @if (Model.ErrorMessage != null)
+        {
+            <div class="alert-box error">@Model.ErrorMessage</div>
+        }
+
+        <form method="post">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="Email" class="form-input" required />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="Password" class="form-input" required />
+            </div>
+            <button type="submit" class="btn-primary">Login</button>
+            <p style="margin-top:12px; font-size:13px;">
+                No account? <a href="/Register">Register</a>
+            </p>
+        </form>
+
+    </div>
+</div>

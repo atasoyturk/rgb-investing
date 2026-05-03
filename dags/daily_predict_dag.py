@@ -1,0 +1,70 @@
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+
+default_args = {
+    'owner': 'airflow',
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+def update_and_save(market: str, **kwargs):
+    import requests
+    
+    # 1. Cache güncelle
+    r = requests.get(
+        f"http://host.docker.internal:8000/signals?market={market}",
+        timeout=120
+    )
+    print(f"{market} cache updated: {r.status_code}")
+    
+    # 2. Tahminleri kaydet
+    r2 = requests.post(
+        f"http://host.docker.internal:8000/predictions/save?market={market}&callback_url=http://host.docker.internal:5175/api/predictions",
+        timeout=30
+    )
+    print(f"{market} predictions saved: {r2.json()}")
+
+
+# BIST100 - 15:00 UTC
+with DAG(
+    dag_id="daily_predict_bist100",
+    default_args=default_args,
+    description="BIST100 daily prediction update + save",
+    schedule_interval="0 15 * * 1-5",
+    start_date=datetime(2025, 1, 1),
+    catchup=False,
+    tags=["ml", "predict", "bist"],
+) as dag_bist:
+
+    PythonOperator(
+        task_id="update_bist100_predictions",
+        python_callable=update_and_save,
+        op_kwargs={"market": "BIST100"},
+    )
+
+
+# SP500 + NASDAQ100 - 21:00 UTC
+with DAG(
+    dag_id="daily_predict_us",
+    default_args=default_args,
+    description="SP500 + NASDAQ100 daily prediction update + save",
+    schedule_interval="0 21 * * 1-5",
+    start_date=datetime(2025, 1, 1),
+    catchup=False,
+    tags=["ml", "predict", "us"],
+) as dag_us:
+
+    sp500_task = PythonOperator(
+        task_id="update_sp500_predictions",
+        python_callable=update_and_save,
+        op_kwargs={"market": "SP500"},
+    )
+
+    nasdaq_task = PythonOperator(
+        task_id="update_nasdaq100_predictions",
+        python_callable=update_and_save,
+        op_kwargs={"market": "NASDAQ100"},
+    )
+
+    sp500_task >> nasdaq_task

@@ -1,0 +1,394 @@
+/* --- Tema değişkenleri --- */
+body {
+    --bg:       #ffffff;
+    --bg2:      #f8f9fa;
+    --bg3:      #f1f3f4;
+    --text:     #1a1a2e;
+    --text2:    #6c757d;
+    --border:   #e9ecef;
+    --nav-bg:   #1a1a2e;
+    --nav-text: #e9ecef;
+    --buy:      #1a9e5c;
+    --buy-bg:   #e8f5ee;
+    --sell:     #d63031;
+    --sell-bg:  #fdecea;
+    --accent:   #4361ee;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: background-color 0.2s, color 0.2s;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+body[data-theme="dark"] {
+    --bg:       #0d0f1a;
+    --bg2:      #161829;
+    --bg3:      #1e2035;
+    --text:     #e9ecef;
+    --text2:    #8892a4;
+    --border:   #2a2d3e;
+    --nav-bg:   #0a0b14;
+    --nav-text: #e9ecef;
+    --buy:      #2ecc71;
+    --buy-bg:   #0d2b1e;
+    --sell:     #e74c3c;
+    --sell-bg:  #2b0d0d;
+    --accent:   #6c8aff;
+}
+
+/* --- Layout --- */
+header { flex-shrink: 0; }
+main   { flex: 1 0 auto; }
+footer { flex-shrink: 0; }
+
+/* --- Navbar --- */
+.navbar {
+    background-color: var(--nav-bg) !important;
+    border-bottom: 1px solid var(--border) !important;
+    transition: background-color 0.2s;
+}
+
+.navbar-nav {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    flex-direction: row;
+}
+
+.navbar-brand {
+    color: var(--nav-text) !important;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.navbar-brand .brand-accent { color: var(--accent); }
+
+.nav-link {
+    color: rgba(233, 236, 239, 0.75) !important;
+    font-size: 14px;
+    transition: color 0.15s;
+}
+
+.nav-link:hover { color: var(--nav-text) !important; }
+
+#theme-toggle {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--nav-text);
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#theme-toggle:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* --- Page container --- */
+.page-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+}
+
+/* --- İstatistik kartları --- */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+@media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+}
+
+.stat-value { font-size: 24px; font-weight: 600; color: var(--text); }
+.stat-value.buy    { color: var(--buy); }
+.stat-value.sell   { color: var(--sell); }
+.stat-value.accent { color: var(--accent); }
+
+/* --- Section başlık --- */
+.section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 14px;
+}
+
+/* --- Tablo --- */
+.table-wrap {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.table-wrap table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+.table-wrap thead tr { background: var(--bg3); }
+
+.table-wrap th {
+    padding: 11px 16px;
+    font-size: 11px;
+    color: var(--text2);
+    text-align: left;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+}
+
+.table-wrap td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tbody tr:hover td { background: var(--bg2); }
+
+.ticker-name  { font-weight: 600; font-size: 14px; color: var(--text); }
+.ticker-price { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* --- Badge --- */
+.signal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.signal-badge.buy   { background: var(--buy-bg);  color: var(--buy); }
+.signal-badge.sell  { background: var(--sell-bg); color: var(--sell); }
+.signal-badge.error { background: var(--bg3);     color: var(--text2); }
+
+/* --- Güven çubuğu --- */
+.conf-wrap { display: flex; align-items: center; gap: 8px; }
+
+.conf-bar {
+    width: 72px;
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.conf-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.conf-fill.buy  { background: var(--buy); }
+.conf-fill.sell { background: var(--sell); }
+
+.conf-text { font-size: 13px; color: var(--text2); min-width: 36px; }
+
+/* --- Detay butonu --- */
+.btn-detail {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 5px 13px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-detail:hover {
+    background: var(--bg2);
+    border-color: var(--accent);
+    color: var(--accent);
+    text-decoration: none;
+}
+
+/* --- Detay sayfası kart --- */
+.detail-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.detail-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    border-radius: 12px 12px 0 0;
+}
+
+.detail-card-header h5 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.detail-card-body { padding: 20px; }
+
+/* --- Metrik satırı --- */
+.metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 600px) {
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.metric-item { text-align: center; padding: 12px 8px; }
+
+.metric-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.metric-value.buy  { color: var(--buy); }
+.metric-value.sell { color: var(--sell); }
+.metric-label { font-size: 12px; color: var(--text2); }
+
+/* --- Görsel alanı --- */
+.chart-area { padding: 8px 0; }
+
+.chart-area img {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.chart-note {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+/* --- Alert --- */
+.alert-box {
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.alert-box.error { background: var(--sell-bg); color: var(--sell); border: 1px solid var(--sell); }
+.alert-box.info  { background: var(--buy-bg);  color: var(--buy);  border: 1px solid var(--buy); }
+
+/* --- Geri butonu --- */
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 6px 0;
+    transition: color 0.15s;
+}
+
+.btn-back:hover { color: var(--text); text-decoration: none; }
+
+/* --- Eğitim dışı uyarı --- */
+.out-of-training {
+    display: inline-block;
+    font-size: 11px;
+    color: #f39c12;
+    background: rgba(243, 156, 18, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 6px;
+}
+
+/* --- Form elemanları --- */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 6px;
+}
+
+.form-input {
+    display: block;
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.form-input:focus {
+    border-color: var(--accent);
+}
+
+.btn-primary {
+    display: inline-block;
+    padding: 9px 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.btn-primary:hover {
+    opacity: 0.88;
+}
+
+/* --- Alert success --- */
+.alert-box.success {
+    background: var(--buy-bg);
+    color: var(--buy);
+    border: 1px solid var(--buy);
+}
+
+/* --- Footer --- */
+footer.border-top {
+    border-top: 1px solid var(--border) !important;
+    color: var(--text2) !important;
+    background: var(--bg) !important;
+}
+
+footer.border-top .container {
+    max-width: 1000px;
+    padding: 16px 20px;
+}

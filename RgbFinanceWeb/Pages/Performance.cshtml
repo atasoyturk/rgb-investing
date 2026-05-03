@@ -1,0 +1,182 @@
+@page
+@model PerformanceModel
+@{ ViewData["Title"] = "Performance"; }
+
+<div class="page-container">
+
+    <div class="section-title">Portfolio Performance</div>
+
+    @if (!Model.HasPortfolio)
+    {
+        <div class="alert-box info">
+            No stocks in your portfolio yet. 
+            <a href="/Portfolio" style="color:var(--buy); text-decoration:none; font-weight:600;">Add stocks to your portfolio</a> 
+            to track performance.
+        </div>
+    }
+    else if (Model.TotalTrades == 0)
+    {
+        <div class="alert-box info">
+            Portfolio is set up. Performance data will appear after the model's signals are evaluated 
+            (approximately <strong>5 trading days</strong> after signals are generated).
+        </div>
+
+        <div style="margin-top:20px; background:var(--bg2); border:1px solid var(--border); padding:20px;">
+            <div style="font-size:13px; color:var(--text2); margin-bottom:16px;">Tracked Stocks</div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                @foreach (var t in Model.Portfolio)
+                {
+                    <span style="background:var(--bg3); border:1px solid var(--border); padding:5px 12px; font-size:13px;">
+                        <strong>@t.Symbol</strong>
+                        <span style="color:var(--text3); font-size:11px; margin-left:6px;">@t.Market</span>
+                    </span>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Stats -->
+        <div class="stats-row" style="margin-bottom:28px;">
+            <div class="stat-card">
+                <div class="stat-label">Total Trades</div>
+                <div class="stat-value">@Model.TotalTrades</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Win Rate</div>
+                <div class="stat-value @(Model.WinRate >= 50 ? "buy" : "sell")">@Model.WinRate%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Return</div>
+                <div class="stat-value @(Model.AvgReturn >= 0 ? "buy" : "sell")">
+                    @(Model.AvgReturn >= 0 ? "+" : "")@Model.AvgReturn%
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Correct Signals</div>
+                <div class="stat-value buy">@Model.Predictions.Count(p => p.ActualOutcome == true)</div>
+            </div>
+        </div>
+
+        <!-- Kümülatif getiri grafiği -->
+        <div class="detail-card" style="margin-bottom:20px;">
+            <div class="detail-card-header"><h5>Cumulative Return</h5></div>
+            <div class="detail-card-body">
+                <p class="chart-note">
+                    Simulated cumulative return if you followed every signal. 
+                    Starting capital: $100. Does not account for transaction costs.
+                </p>
+                <canvas id="cumulative-chart" height="80"></canvas>
+            </div>
+        </div>
+
+        <!-- Trade geçmişi -->
+        <div class="detail-card">
+            <div class="detail-card-header"><h5>Signal History</h5></div>
+            <div class="detail-card-body" style="padding:0;">
+                <div class="table-wrap" style="border:none;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Signal</th>
+                                <th>Date</th>
+                                <th>Entry Price</th>
+                                <th>Exit Price</th>
+                                <th>Return</th>
+                                <th>Result</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.Predictions)
+                            {
+                                var ret = p.ActualPrice.HasValue && p.PriceAtSignal > 0
+                                    ? (p.ActualPrice.Value - p.PriceAtSignal) / p.PriceAtSignal * 100
+                                    : 0;
+                                var currency = p.Ticker.EndsWith(".IS") ? "₺" : "$";
+                                <tr>
+                                    <td><strong>@p.Ticker</strong></td>
+                                    <td>
+                                        @if (p.Signal == "BUY")
+                                        {
+                                            <span class="signal-badge buy">▲ BUY</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="signal-badge sell">▼ SELL</span>
+                                        }
+                                    </td>
+                                    <td style="color:var(--text2); font-size:13px;">@p.PredictedDate.ToString("dd MMM yyyy")</td>
+                                    <td>@currency@p.PriceAtSignal.ToString("F2")</td>
+                                    <td>@(p.ActualPrice.HasValue ? $"{currency}{p.ActualPrice.Value:F2}" : "—")</td>
+                                    <td style="color:@(ret >= 0 ? "var(--buy)" : "var(--sell)")">
+                                        @(ret >= 0 ? "+" : "")@ret.ToString("F2")%
+                                    </td>
+                                    <td>
+                                        @if (p.ActualOutcome == true)
+                                        {
+                                            <span style="color:var(--buy);">✓ Correct</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="color:var(--sell);">✗ Wrong</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (Model.TotalTrades > 0)
+{
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const predictions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            Model.Predictions.Select(p => new {
+                date     = p.PredictedDate.ToString("dd MMM"),
+                ret      = p.ActualPrice.HasValue && p.PriceAtSignal > 0
+                    ? (p.ActualPrice.Value - p.PriceAtSignal) / p.PriceAtSignal * 100
+                    : 0
+            }).Reverse().ToList()
+        ));
+
+        let capital = 100;
+        const labels  = [];
+        const values  = [100];
+
+        predictions.forEach(p => {
+            capital *= (1 + p.ret / 100);
+            labels.push(p.date);
+            values.push(parseFloat(capital.toFixed(2)));
+        });
+        labels.unshift('Start');
+
+        new Chart(document.getElementById('cumulative-chart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Portfolio Value ($)',
+                    data: values,
+                    borderColor: values[values.length-1] >= 100 ? '#3fb950' : '#f85149',
+                    backgroundColor: values[values.length-1] >= 100 ? 'rgba(63,185,80,0.08)' : 'rgba(248,81,73,0.08)',
+                    pointRadius: 3,
+                    tension: 0.3,
+                    fill: true,
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b949e' } },
+                    x: { ticks: { color: '#8b949e' }, grid: { display: false } }
+                }
+            }
+        });
+    </script>
+}

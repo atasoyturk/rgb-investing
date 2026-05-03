@@ -1,0 +1,76 @@
+logs/
+plugins/
+RgbFinanceWeb/bin/
+RgbFinanceWeb/obj/
+RgbFinanceWeb/Migrations/
+*.db
+
+# ========================
+# Python
+# ========================
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# ========================
+# Environment / Secrets
+# ========================
+.env
+.env.*
+!.env.example
+
+# ========================
+# ML Artifacts
+# ========================
+saved_model*/
+
+mlruns/
+mlartifacts/
+optuna.db
+*.h5
+*.keras
+*.pb
+*.pt
+*.pth
+*.pkl
+*.pickle
+*.npy
+*.npz
+
+# ========================
+# Notebooks
+# ========================
+notebooks/*.pdf
+
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+
+# ========================
+# IDE
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# ========================
+# Logs
+# ========================
+*.log
+*.tmp
+*.temp

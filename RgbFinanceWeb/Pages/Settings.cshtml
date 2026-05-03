@@ -1,0 +1,85 @@
+@page
+@model SettingsModel
+@{ ViewData["Title"] = "Settings"; }
+
+<div class="page-container" style="max-width:600px;">
+
+    <div class="section-title">Account Settings</div>
+
+    @if (Model.SuccessMessage != null)
+    {
+        <div class="alert-box info">@Model.SuccessMessage</div>
+    }
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert-box error">@Model.ErrorMessage</div>
+    }
+
+    <!-- Hesap bilgileri -->
+    <div class="detail-card" style="margin-bottom:16px;">
+        <div class="detail-card-header"><h5>Account Info</h5></div>
+        <div class="detail-card-body">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:13px; color:var(--text2); margin-bottom:4px;">Email</div>
+                    <div style="font-size:15px; font-weight:600;">@Model.CurrentUser?.Email</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Şifre değiştir -->
+    <div class="detail-card" style="margin-bottom:16px;">
+        <div class="detail-card-header"><h5>Change Password</h5></div>
+        <div class="detail-card-body">
+            <form method="post" asp-page-handler="ChangePassword">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" name="currentPassword" class="form-input" required />
+                </div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" name="newPassword" class="form-input" required />
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" name="confirmPassword" class="form-input" required />
+                </div>
+                <button type="submit" class="btn-primary">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2FA -->
+    <div class="detail-card" style="margin-bottom:16px;">
+        <div class="detail-card-header"><h5>Two-Factor Authentication</h5></div>
+        <div class="detail-card-body" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:14px; color:var(--text2);">
+                Add an extra layer of security to your account.
+            </div>
+            <a href="/EnableTwoFactor" class="btn-detail">Manage 2FA</a>
+        </div>
+    </div>
+
+    <!-- Hesabı sil -->
+    <div class="detail-card" style="border-color:rgba(248,81,73,0.2);">
+        <div class="detail-card-header" style="background:rgba(248,81,73,0.05);"><h5 style="color:var(--sell);">Delete Account</h5></div>
+        <div class="detail-card-body">
+            <p style="font-size:13px; color:var(--text2); margin-bottom:16px;">
+                This will permanently delete your account, portfolio, and all prediction history. This action cannot be undone.
+            </p>
+            <form method="post" asp-page-handler="DeleteAccount" 
+                  onsubmit="return confirm('Are you sure? This cannot be undone.')">
+                <div class="form-group">
+                    <label>Confirm your email to delete</label>
+                    <input type="email" name="confirmEmail" class="form-input" placeholder="your@email.com" required />
+                </div>
+                <button type="submit" style="background:transparent; border:1px solid var(--sell); color:var(--sell); padding:8px 18px; cursor:pointer; font-size:14px;">
+                    Delete Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
