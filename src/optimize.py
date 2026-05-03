@@ -48,13 +48,20 @@ def run_optimization(
 
     trial_count = [0]
     best_f1     = [0.0]
+    
+    THRESHOLD_RANGES = {
+        "SP500":     (0.010, 0.025),
+        "NASDAQ100": (0.015, 0.035),
+        "BIST100":   (0.020, 0.050),
+    }
 
     def objective(trial) -> float:
         
-        threshold   = trial.suggest_float("label_threshold", 0.000, 0.030, step=0.002)
+        lo, hi    = THRESHOLD_RANGES.get(market, (0.010, 0.030))
+        threshold = trial.suggest_float("label_threshold", lo, hi, step=0.005)
         window_size = 400
-        future_days = trial.suggest_categorical("future_days", [3, 4, 5])
-        stride      = trial.suggest_categorical("stride",      [3, 5, 10])
+        future_days = 5  # sabit
+        stride      = trial.suggest_categorical("stride", [3, 5, 10])
         h           = int(np.sqrt(window_size))
 
         cfg = ExperimentConfig(
