@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import optuna
 import mlflow
+from datetime import datetime, timedelta
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
@@ -49,15 +50,22 @@ def run_optimization(
     trial_count = [0]
     best_f1     = [0.0]
     
-    THRESHOLD_RANGES = {
-        "SP500":     (0.010, 0.025),
-        "NASDAQ100": (0.015, 0.035),
-        "BIST100":   (0.020, 0.050),
-    }
+    def compute_threshold_range(df, target_buy_low=0.20, target_buy_high=0.30):
+        one_year_ago = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        recent = df[df.index >= one_year_ago]
+        returns = recent.groupby('Ticker')['Close'].pct_change(5).shift(-5).dropna()
+        lo = float(returns.quantile(1 - target_buy_low))
+        hi = float(returns.quantile(1 - target_buy_high))
+        lo, hi = min(lo, hi), max(lo, hi)
+        lo = max(lo, 0.005)
+        return round(lo, 3), round(hi, 3)
+
+    lo, hi = compute_threshold_range(df_features)
+    print(f"[Optuna/{market}] Threshold range: {lo:.3f} - {hi:.3f}")
+    
 
     def objective(trial) -> float:
         
-        lo, hi    = THRESHOLD_RANGES.get(market, (0.010, 0.030))
         threshold = trial.suggest_float("label_threshold", lo, hi, step=0.005)
         window_size = 400
         future_days = 5  # sabit
