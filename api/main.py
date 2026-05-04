@@ -153,13 +153,15 @@ def get_threshold(market: str = "SP500"):
     lo = round(float(returns.quantile(0.70)), 3)
     hi = round(float(returns.quantile(0.80)), 3)
     lo = max(lo, 0.005)
+    mid = round((lo + hi) / 2, 3)
+
 
     result = {
         "market": market,
         "threshold_lo": lo,
         "threshold_hi": hi,
         "future_days": 5,
-        "label": f"%{int(lo*100)} - %{int(hi*100)} artış bekleniyor"
+        "label": f"around %{int(mid*100)} increase"
     }
 
     r.setex(f"threshold:{market}", CACHE_TTL, json.dumps(result))
