@@ -136,6 +136,7 @@
                         <th>Signal</th>
                         <th>Trust</th>
                         <th>Last Close Price</th>
+                        <th>Change</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -179,6 +180,18 @@
                                 {
                                     <span>@s.Currency@s.LastPrice.Value.ToString("F2")</span>
 
+                                }
+                                else
+                                {
+                                    <span style="color:var(--text2)">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (s.PriceChange.HasValue)
+                                {
+                                    var color = s.PriceChange.Value >= 0 ? "var(--buy)" : "var(--sell)";
+                                    var sign = s.PriceChange.Value >= 0 ? "+" : "";
+                                    <span style="color:@color; font-weight:600;">@sign@s.PriceChange.Value.ToString("F1")%</span>
                                 }
                                 else
                                 {
