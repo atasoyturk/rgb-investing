@@ -13,6 +13,13 @@ class TrainRequest(BaseModel):
     tickers: list[str] = []  
     fine_tune: bool = False
 
+class ThresholdResponse(BaseModel):
+    market: str
+    threshold_lo: float
+    threshold_hi: float
+    future_days: int
+    label: str  
+
 
 class SignalResponse(BaseModel):
     ticker: str

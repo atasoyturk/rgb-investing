@@ -1,11 +1,13 @@
 import os
 import time
+import json
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import Response
 from api.predictor import Predictor
-from api.schemas import SignalResponse, SignalsTableResponse, HealthResponse, TrainRequest
-from api.cache import get_cached_signals, set_cached_signals, get_cached_gradcam, set_cached_gradcam
+from api.schemas import SignalResponse, SignalsTableResponse, HealthResponse, TrainRequest, ThresholdResponse
+from api.cache import get_cached_signals, set_cached_signals, get_cached_gradcam, set_cached_gradcam, r, CACHE_TTL
+
 
 from src.experiment_config import ExperimentConfig
 from src.data import fetch_data
@@ -125,6 +127,43 @@ def get_indicators(market: str):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/threshold", response_model=ThresholdResponse, tags=["System"])
+def get_threshold(market: str = "SP500"):
+    from src.data import fetch_data
+    from src.features import FeatureBuilder, FEATURE_CATALOG
+    from src.tickers import MARKET_TICKERS
+    from datetime import datetime, timedelta
+    import pandas as pd
+
+    cached = r.get(f"threshold:{market}")
+    if cached:
+        return json.loads(cached)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+    tickers = MARKET_TICKERS[market][:50]
+
+    data = fetch_data(tickers=tickers, start=one_year_ago, end=today)
+    builder = FeatureBuilder(data)
+    all_features = list(FEATURE_CATALOG.keys())
+    df = builder.build_custom({"R": all_features, "G": all_features, "B": all_features})
+
+    returns = df.groupby("Ticker")["Close"].pct_change(5).shift(-5).dropna()
+    lo = round(float(returns.quantile(0.70)), 3)
+    hi = round(float(returns.quantile(0.80)), 3)
+    lo = max(lo, 0.005)
+
+    result = {
+        "market": market,
+        "threshold_lo": lo,
+        "threshold_hi": hi,
+        "future_days": 5,
+        "label": f"%{int(lo*100)} - %{int(hi*100)} artış bekleniyor"
+    }
+
+    r.setex(f"threshold:{market}", CACHE_TTL, json.dumps(result))
+    return result
     
 @app.get("/model/history/{market}", tags=["Monitoring"])
 def get_model_history(market: str):
