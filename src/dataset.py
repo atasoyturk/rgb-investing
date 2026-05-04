@@ -1,5 +1,7 @@
 import numpy as np
-from config import FUTURE_DAYS, LABEL_THRESHOLD
+from config import FUTURE_DAYS
+
+LABEL_THRESHOLD = 0.01  # default fallback
 
 
 def create_dataset(
@@ -10,7 +12,8 @@ def create_dataset(
     tickers: list,
     future_days: int = FUTURE_DAYS,
     label_threshold: float = LABEL_THRESHOLD,
-):
+
+    ):
     
     h = int(np.sqrt(window_size))
     n = len(feature_cols)

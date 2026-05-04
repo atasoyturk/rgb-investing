@@ -25,7 +25,7 @@ from src.dataset import create_dataset
 from src.model import build_model
 from src.normalization import QuantileScaler
 from config import (
-    EPOCHS, BATCH_SIZE, LABEL_THRESHOLD, PATIENCE, CLASS_WEIGHT_MULTIPLIER,
+    EPOCHS, BATCH_SIZE, PATIENCE, CLASS_WEIGHT_MULTIPLIER,
     MLFLOW_EXPERIMENT_NAME, MLFLOW_TRACKING_URI, FUTURE_DAYS,
 )
 
@@ -41,7 +41,7 @@ class RGBExperiment:
         window_size: int = 400,
         stride: int = 5,
         future_days: int | None = None,
-        label_threshold: float | None = None,  # YENİ
+        label_threshold: float | None = None,  
 
     ):
         self.name         = name
@@ -51,7 +51,7 @@ class RGBExperiment:
         self.window_size  = window_size
         self.stride       = stride
         self.future_days  = future_days if future_days is not None else FUTURE_DAYS
-        self.label_threshold = label_threshold if label_threshold is not None else LABEL_THRESHOLD
+        self.label_threshold = label_threshold if label_threshold is not None else 0.01
         self.image_size   = int(np.sqrt(window_size))
 
         self.X_train = self.X_test = None
