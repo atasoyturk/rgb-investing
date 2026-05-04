@@ -60,14 +60,15 @@
         
         box.style.display = 'block';
         box.innerHTML = results.slice(0, 8).map(r => {
-            const market = r.symbol.endsWith('.IS') ? 'BIST100' : 'SP500';
+            const symbol = r.symbol.replace('.E.IS', '.IS');
+            const market = symbol.endsWith('.IS') ? 'BIST100' : 'SP500';
             return `<form method="post" action="/Portfolio?handler=Add">
                 <input type="hidden" name="__RequestVerificationToken" value="${document.querySelector('input[name=__RequestVerificationToken]')?.value ?? ''}" />
-                <input type="hidden" name="symbol" value="${r.symbol}" />
+                <input type="hidden" name="symbol" value="${symbol}" />
                 <input type="hidden" name="market" value="${market}" />
                 <button type="submit" style="width:100%; background:none; border:none; border-bottom:1px solid var(--border); padding:10px 14px; cursor:pointer; text-align:left; font-size:14px; color:var(--text);"
                         onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
-                    <strong>${r.symbol}</strong>
+                    <strong>${symbol}</strong>
                     <span style="color:var(--text2); font-size:12px; margin-left:8px;">${r.description}</span>
                     <span style="color:var(--accent2); font-size:11px; margin-left:8px;">${market}</span>
                 </button>
