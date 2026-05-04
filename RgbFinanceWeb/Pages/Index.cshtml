@@ -10,6 +10,7 @@
     {
         <div class="alert-box error">
             <strong>Connection Error:</strong> @Model.ErrorMessage
+            <div style="margin-top:8px; font-size:13px;">Data may be loading, please refresh the page (F5).</div>
         </div>
     }
 
@@ -19,10 +20,6 @@
             <strong>Model is Ready</strong> —
             @Model.Health.WindowSize daily windows,
             @Model.Health.FutureDays days after prediction
-            @if (Model.Health.F1Macro.HasValue)
-            {
-                <span style="float:right">F1: @Model.Health.F1Macro.Value.ToString("P1")</span>
-            }
         </div>
     }
 
