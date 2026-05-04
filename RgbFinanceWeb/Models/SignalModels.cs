@@ -9,6 +9,9 @@ namespace RgbFinanceWeb.Models
         public double? LastPrice     { get; set; }
         public int     FutureDays    { get; set; }
         public bool    InTrainingSet { get; set; }
+
+        public double? SignalPrice  { get; set; }  
+        public double? PriceChange  { get; set; }  
     }
 
     public class SignalsTableModel

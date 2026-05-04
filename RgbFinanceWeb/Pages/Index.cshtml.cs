@@ -98,6 +98,26 @@ namespace RgbFinanceWeb.Pages
                             .Where(s => s.Confidence * 100 >= minTrust).ToList();
                 }
 
+                if (SignalsTable != null)
+                {
+                    var tickers = SignalsTable.Signals.Select(s => s.Ticker).ToList();
+                    var predictions = await _db.Predictions
+                        .Where(p => p.Market == market && tickers.Contains(p.Ticker))
+                        .OrderByDescending(p => p.PredictedDate)
+                        .ToListAsync();
+
+                    foreach (var sig in SignalsTable.Signals)
+                    {
+                        var pred = predictions.FirstOrDefault(p => p.Ticker == sig.Ticker);
+                        if (pred != null && sig.LastPrice.HasValue && pred.PriceAtSignal > 0)
+                        {
+                            sig.SignalPrice = pred.PriceAtSignal;
+                            sig.PriceChange = Math.Round(
+                                (sig.LastPrice.Value - pred.PriceAtSignal) / pred.PriceAtSignal * 100, 2);
+                        }
+                    }
+                }
+
                 var thresholdResponse = await client.GetAsync($"threshold?market={market}");
                 if (thresholdResponse.IsSuccessStatusCode)
                 {
