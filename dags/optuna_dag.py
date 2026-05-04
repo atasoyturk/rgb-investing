@@ -58,7 +58,7 @@ def trigger_retrain_with_best_params(market: str, **kwargs):
         "stride":      best_params.get("stride", 5),
         "fine_tune":   fine_tune,
     }
-    r = requests.post("http://host.docker.internal:8000/train", json=payload, timeout=30)
+    r = requests.post("http://178.104.125.39:8000/train", json=payload, timeout=30)
     print(f"{market} retrain triggered with best params: {r.json()}")
 
 

@@ -12,14 +12,14 @@ def check_drift(market: str, **kwargs):
     import requests
     
     r = requests.post(
-        f"http://host.docker.internal:5175/api/drift/check?market={market}",
+        f"http://178.104.125.39:5175/api/drift/check?market={market}",
         timeout=60
     )
     result = r.json()
     print(f"{market} drift check: {result}")
     
     if result.get("accuracy") and result["accuracy"] < 0.45:
-        print(f"⚠️  DRIFT DETECTED for {market}! Accuracy: {result['accuracy']:.2%}")
+        print(f"DRIFT DETECTED for {market}! Accuracy: {result['accuracy']:.2%}")
 
 
 with DAG(
