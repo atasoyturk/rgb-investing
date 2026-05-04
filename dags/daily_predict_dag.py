@@ -28,10 +28,10 @@ def update_and_save(market: str, **kwargs):
 
 # BIST100 - 15:00 UTC
 with DAG(
-    dag_id="daily_predict_bist100",
+    dag_id="weekly_predict_bist100",
     default_args=default_args,
-    description="BIST100 daily prediction update + save",
-    schedule_interval="0 15 * * 1-5",
+    description="BIST100 weekly prediction update + save",
+    schedule_interval="0 15 * * 5",
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=["ml", "predict", "bist"],
@@ -46,10 +46,10 @@ with DAG(
 
 # SP500 + NASDAQ100 - 21:00 UTC
 with DAG(
-    dag_id="daily_predict_us",
+    dag_id="weekly_predict_us",
     default_args=default_args,
-    description="SP500 + NASDAQ100 daily prediction update + save",
-    schedule_interval="0 21 * * 1-5",
+    description="SP500 + NASDAQ100 weekly prediction update + save",
+    schedule_interval="0 21 * * 5",
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=["ml", "predict", "us"],
