@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from config import (
-    WINDOW_SIZE, STRIDE, FUTURE_DAYS,
-    LABEL_THRESHOLD, TRAIN_SPLIT,
+    WINDOW_SIZE, STRIDE, FUTURE_DAYS, TRAIN_SPLIT,
 )
 
 @dataclass
@@ -12,5 +11,4 @@ class ExperimentConfig:
     window_size:     int       = WINDOW_SIZE
     stride:          int       = STRIDE
     future_days:     int       = FUTURE_DAYS
-    label_threshold: float     = LABEL_THRESHOLD
     train_split:     float     = TRAIN_SPLIT
