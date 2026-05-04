@@ -107,6 +107,39 @@ async def get_signal(request: Request, ticker: str, market: str = "SP500"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/prices/update", tags=["System"])
+@limiter.limit("5/minute")
+async def update_prices(request: Request, market: str = "SP500"):
+    try:
+        cached = get_cached_signals(market)
+        if not cached:
+            raise HTTPException(status_code=404, detail="No cached signals found")
+        
+        tickers = [s["ticker"] for s in cached["signals"]]
+        
+        from src.data import fetch_data
+        from datetime import datetime, timedelta
+        today = datetime.now().strftime("%Y-%m-%d")
+        yesterday = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
+        
+        data = fetch_data(tickers=tickers, start=yesterday, end=today)
+        price_map = {}
+        for ticker in tickers:
+            tdf = data[data["Ticker"] == ticker]
+            if not tdf.empty:
+                price_map[ticker] = round(float(tdf["Close"].iloc[-1]), 2)
+        
+        for signal in cached["signals"]:
+            if signal["ticker"] in price_map:
+                signal["last_price"] = price_map[signal["ticker"]]
+        
+        set_cached_signals(market, cached)
+        return {"updated": len(price_map)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/indicators/{market}", tags=["Visualisation"])
 @limiter.limit("20/minute")
 async def get_indicators(request: Request, market: str):
