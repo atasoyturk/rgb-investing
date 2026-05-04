@@ -16,21 +16,33 @@ def update_prices(market: str, **kwargs):
     )
     print(f"{market} prices updated: {r.json()}")
 
+# BIST100 - 15:30 UTC (kapanıştan 30 dk sonra)
 with DAG(
-    dag_id="daily_price_update",
+    dag_id="daily_price_update_bist",
     default_args=default_args,
-    description="Daily price update for all markets",
-    schedule_interval="0 16 * * 1-5",  # Hafta içi 16:00 UTC (19:00 Türkiye)
+    description="Daily BIST100 price update",
+    schedule_interval="30 15 * * 1-5",
     start_date=datetime(2025, 1, 1),
     catchup=False,
-    tags=["ml", "price", "daily"],
-) as dag:
+    tags=["price", "daily", "bist"],
+) as dag_bist:
 
-    bist_task = PythonOperator(
+    PythonOperator(
         task_id="update_bist100_prices",
         python_callable=update_prices,
         op_kwargs={"market": "BIST100"},
     )
+
+# SP500 + NASDAQ - 21:30 UTC (kapanıştan 30 dk sonra)
+with DAG(
+    dag_id="daily_price_update_us",
+    default_args=default_args,
+    description="Daily SP500 + NASDAQ100 price update",
+    schedule_interval="30 21 * * 1-5",
+    start_date=datetime(2025, 1, 1),
+    catchup=False,
+    tags=["price", "daily", "us"],
+) as dag_us:
 
     sp500_task = PythonOperator(
         task_id="update_sp500_prices",
@@ -44,4 +56,4 @@ with DAG(
         op_kwargs={"market": "NASDAQ100"},
     )
 
-    bist_task >> sp500_task >> nasdaq_task
+    sp500_task >> nasdaq_task
