@@ -23,10 +23,10 @@ def check_drift(market: str, **kwargs):
 
 
 with DAG(
-    dag_id="daily_drift_monitor",
+    dag_id="weekly_drift_monitor",
     default_args=default_args,
-    description="Daily model drift monitoring",
-    schedule_interval="0 22 * * 1-5",  # 22:00 UTC — SP500 kapanışından 1 saat sonra
+    description="Weekly model drift monitoring",
+    schedule_interval="0 22 * * 5",
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=["ml", "monitoring"],
