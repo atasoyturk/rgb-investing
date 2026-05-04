@@ -21,6 +21,10 @@ builder.Configuration["AdminSettings:Email"] =
     Environment.GetEnvironmentVariable("ADMIN_EMAIL") 
     ?? builder.Configuration["AdminSettings:Email"];
 
+builder.Configuration["ApiSettings:BaseUrl"] =
+    Environment.GetEnvironmentVariable("API_BASE_URL")
+    ?? builder.Configuration["ApiSettings:BaseUrl"];
+
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:8000/";
 
 builder.Services.AddHttpClient("FinanceApi", client =>

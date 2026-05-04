@@ -8,7 +8,6 @@ MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "deep-rgb-finance")
 MLFLOW_TRACKING_URI    = os.getenv("MLFLOW_TRACKING_URI", "mlruns")
 
 # --- Labeling ---
-LABEL_THRESHOLD         = 0.01
 CLASS_WEIGHT_MULTIPLIER = 1.0
 
 # --- Sliding window defaults ---
