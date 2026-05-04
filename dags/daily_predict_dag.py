@@ -21,7 +21,7 @@ def update_and_save(market: str, **kwargs):
     # 2. Tahminleri kaydet
     r2 = requests.post(
         f"http://178.104.125.39:8000/predictions/save?market={market}&callback_url=http://178.104.125.39:5175/api/predictions",
-        timeout=30
+        timeout=300
     )
     print(f"{market} predictions saved: {r2.json()}")
 
