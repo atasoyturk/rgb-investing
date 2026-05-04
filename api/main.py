@@ -5,6 +5,8 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import Response
 from api.predictor import Predictor
 from api.schemas import SignalResponse, SignalsTableResponse, HealthResponse, TrainRequest
+from api.cache import get_cached_signals, set_cached_signals, get_cached_gradcam, set_cached_gradcam
+
 from src.experiment_config import ExperimentConfig
 from src.data import fetch_data
 from src.features import FeatureBuilder, FEATURE_CATALOG
@@ -160,7 +162,14 @@ def get_gradcam(ticker: str, market: str = "SP500"):
         pred = predictors.get(market)
         if pred is None:
             raise HTTPException(status_code=404, detail=f"No model for market: {market}")
-        return Response(content=pred.gradcam_png(ticker.upper()), media_type="image/png")
+        
+        cached = get_cached_gradcam(market, ticker.upper())
+        if cached:
+            return Response(content=cached, media_type="image/png")
+        
+        png = pred.gradcam_png(ticker.upper())
+        set_cached_gradcam(market, ticker.upper(), png)
+        return Response(content=png, media_type="image/png")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
