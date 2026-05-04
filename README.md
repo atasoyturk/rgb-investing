@@ -1,13 +1,17 @@
 <p align="center">
-  <img src="RgbFinanceWeb/wwwroot/images/logo.png" alt="RGB Finance" height="80" />
+  <img src="RgbFinanceWeb/wwwroot/images/logo.png" alt="RGB Investing" height="80" />
 </p>
 
 <h1 align="center">RGB Investing</h1>
 
 <p align="center">
-  Deep learning-based BUY/SELL signal generator for stock markets.
+  <a href="http://178.104.125.39:5175">🌐 Live Demo</a>
   <br />
-  Converts market data into visual patterns and learns indicator combinations automatically.
+  S&P 500 · NASDAQ 100 · BIST 100
+  <br />
+  Deep learning based BUY/SELL signal generator for stock markets.
+  <br />
+  Converts market data into visual patterns and learns technical indicator combinations automatically.
 </p>
 
 <p align="center">
@@ -15,7 +19,7 @@
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=flat&logo=dotnet&logoColor=white" />
   <img src="https://img.shields.io/badge/TensorFlow-2.x-FF6F00?style=flat&logo=tensorflow&logoColor=white" />
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688?style=flat&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/SQL_Server-Express-CC2927?style=flat&logo=microsoftsqlserver&logoColor=white" />
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white" />
   <img src="https://img.shields.io/badge/Redis-7.0-DC382D?style=flat&logo=redis&logoColor=white" />
   <img src="https://img.shields.io/badge/Airflow-2.7-017CEE?style=flat&logo=apacheairflow&logoColor=white" />
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white" />
@@ -24,26 +28,25 @@
 
 ---
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Model](#model)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Airflow DAGs](#airflow-dags)
-- [API Reference](#api-reference)
-
----
-
 ## Overview
 
-RGB Finance takes a different approach to technical analysis. Instead of asking investors to choose and tune indicators manually, it lets a deep learning model learn which indicator combinations are predictive automatically, across hundreds of stocks.
+**RGB Investing takes a different approach to technical analysis.** 
 
-The core idea: convert 400 or 900 days of OHLCV data into 16 independent technical indicators, reshape them into a 20×20 or 30x30 grid (like an image), and train a CNN to recognize patterns that historically preceded price movements.
+Technical indicators play a very important role in investing. However, the technical indicator that works best varies from one stock to another and from one global market to another. Generally, people interested in the stock market try to overcome this challenge by watching YouTube videos from all kinds of investors and seeking information from forums. In the end, they usually apply a fixed set of 3–5 rules to every stock.
 
-Markets covered: **S&P 500**, **NASDAQ 100**, **BIST 100**
+
+* **The model learns, on a stock-by-stock basis, which indicators work across hundreds of stocks and three different markets.** 
+
+  - If you had blindly bought every stock over the past 10 years, you would have been correct about one-third of the time. The model aims to significantly increase this rate by learning patterns from historical data.
+
+
+**The core idea**
+
+Convert the last 400 trading days of OHLCV data into 16 independent technical indicators, reshape them into a 20×20 grid (treating it like an image), and train a CNN to recognize patterns that historically preceded significant price movements.
+
+
+* **Signals are generated weekly (every Friday after market close) and updated monthly via automated retraining.**
+
 
 ---
 
@@ -60,20 +63,18 @@ FastAPI (Python ML API)
       +-- Redis Cache
       +-- MLflow (Experiment Tracking)
       |
-SQL Server (Users, Portfolio, Predictions)
+SQLite (Users, Portfolio, Predictions)
       |
-Apache Airflow (Docker)
-      +-- daily_predict_bist100     (15:00 UTC, Mon-Fri)
-      +-- daily_predict_us          (21:00 UTC, Mon-Fri)
-      +-- daily_drift_monitor       (22:00 UTC, Mon-Fri)
+Apache Airflow (Docker, LocalExecutor)
+      +-- weekly_predict_bist100    (Fri 15:00 UTC)
+      +-- weekly_predict_us         (Fri 21:00 UTC)
+      +-- weekly_drift_monitor      (Fri 22:00 UTC)
       +-- monthly_optuna_retrain    (1st of month, 16:00 UTC)
 ```
 
 ---
 
 ## Model
-
-The model architecture:
 
 ```
 Input (20×20×16)
@@ -88,9 +89,16 @@ Input (20×20×16)
   → Dense(1, sigmoid)
 ```
 
-**Training strategy:** Global model trained on SP500 (500+ stocks), then fine-tuned per market using only the projection and output layers (113 trainable parameters during fine-tune). This preserves universal pattern knowledge while adapting to market-specific dynamics.
+**Training strategy:** Global model trained on SP500 (500+ stocks), then fine-tuned per market using only the projection and output layers (113 trainable parameters). This preserves universal pattern knowledge while adapting to market-specific dynamics.
 
-**Indicators used (16):**
+**Hyperparameter optimization:** Optuna runs monthly. Before each search, the label threshold range is dynamically computed from the last 12 months of market data, ensuring the search space reflects current market conditions. Optuna then finds the optimal threshold within this range. 
+
+* Label threshold defines the minimum expected return for a BUY signal: 
+  - For example, a threshold of 3% means the model marks a stock as BUY only when it expects at least 3% gain in 5 trading days. This value is optimized separately for each market.
+
+**Indicators:**
+
+* The 16 indicators were selected to be independent of one another. Using indicators that are highly correlated with one another does not add any additional information to the model; it merely increases noise.
 
 | Category | Indicators |
 |---|---|
@@ -111,74 +119,23 @@ Input (20×20×16)
 | Model | TensorFlow / Keras CNN |
 | Data | yfinance |
 | Cache | Redis 7 |
-| Database | SQL Server Express |
+| Database | SQLite |
 | Experiment Tracking | MLflow |
 | Hyperparameter Search | Optuna |
-| Scheduler | Apache Airflow 2.7 (Docker) |
-| Auth | ASP.NET Identity + TOTP 2FA |
+| Scheduler | Apache Airflow 2.7 (Docker, LocalExecutor) |
+| Auth | ASP.NET Identity |
 | Stock Search | Finnhub API |
 
 ---
 
-## Getting Started
+## Airflow DAGs
 
-### Prerequisites
-
-- Python 3.12
-- .NET 10 SDK
-- SQL Server Express
-- Docker Desktop
-
-### 1. Clone and configure
-
-```bash
-git clone https://github.com/atasoyturk/deep_rgb_encoding_for_finance.git
-cd deep_rgb_encoding_for_finance
-cp .env.example .env
-# Fill in .env with your values
-```
-
-### 2. Install Python dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Start Redis
-
-```bash
-docker-compose -f docker-compose-redis.yml up -d
-```
-
-### 4. Start Airflow
-
-```bash
-docker-compose -f airflow-official.yaml up airflow-init
-docker-compose -f airflow-official.yaml up -d
-```
-
-### 5. Train initial models
-
-Open the web UI (step 7), go to **Train** page as admin:
-- Train global model (SP500, fine_tune: off)
-- Fine-tune NASDAQ100 (fine_tune: on)
-- Fine-tune BIST100 (fine_tune: on)
-
-### 6. Start the ML API
-
-```bash
-uvicorn api.main:app --reload --port 8000
-```
-
-### 7. Start the web application
-
-```bash
-cd RgbFinanceWeb
-dotnet ef database update
-dotnet watch
-```
-
-Open `http://localhost:5175`
+| DAG | Schedule | Description |
+|---|---|---|
+| `weekly_predict_bist100` | Fri 15:00 UTC | Update BIST100 signal cache + save predictions |
+| `weekly_predict_us` | Fri 21:00 UTC | Update SP500 + NASDAQ100 cache + save predictions |
+| `weekly_drift_monitor` | Fri 22:00 UTC | Evaluate past predictions, detect model drift |
+| `monthly_optuna_retrain` | 1st of month 16:00 UTC | Dynamic threshold computation + Optuna search + retrain all markets |
 
 ---
 
@@ -188,7 +145,7 @@ Open `http://localhost:5175`
 .
 ├── api/                    # FastAPI application
 │   ├── main.py             # Endpoints
-│   ├── predictor.py        # Model inference
+│   ├── predictor.py        # Model inference + Grad-CAM
 │   ├── cache.py            # Redis cache layer
 │   └── schemas.py          # Pydantic models
 ├── src/                    # Core ML pipeline
@@ -199,7 +156,7 @@ Open `http://localhost:5175`
 │   ├── model.py            # CNN architecture
 │   ├── experiment.py       # Training orchestration
 │   ├── dataset.py          # Sliding window dataset
-│   ├── optimize.py         # Optuna search
+│   ├── optimize.py         # Optuna search + dynamic threshold
 │   ├── tickers.py          # Market ticker lists
 │   └── experiment_config.py
 ├── dags/                   # Airflow DAGs
@@ -212,21 +169,9 @@ Open `http://localhost:5175`
 │   ├── Models/             # View models
 │   └── Endpoints/          # Minimal API endpoints
 ├── config.py               # Project configuration
-├── .env.example            # Environment variable template
-├── docker-compose-redis.yml
-└── airflow-official.yaml
+├── airflow-official.yaml   # Airflow Docker Compose
+└── docker-compose-redis.yml
 ```
-
----
-
-## Airflow DAGs
-
-| DAG | Schedule | Description |
-|---|---|---|
-| `daily_predict_bist100` | Mon-Fri 15:00 UTC | Update BIST100 signal cache + save predictions |
-| `daily_predict_us` | Mon-Fri 21:00 UTC | Update SP500 + NASDAQ100 cache + save predictions |
-| `daily_drift_monitor` | Mon-Fri 22:00 UTC | Evaluate past predictions, detect model drift |
-| `monthly_optuna_retrain` | 1st of month 16:00 UTC | Optuna search + global train + fine-tune all markets |
 
 ---
 
@@ -239,17 +184,14 @@ Base URL: `http://localhost:8000`
 | GET | `/health` | Model status |
 | GET | `/signals?market=SP500` | All signals for a market |
 | GET | `/signals/{ticker}?market=SP500` | Signal for a specific ticker |
+| GET | `/threshold?market=SP500` | Expected return threshold for a market |
 | GET | `/gradcam/{ticker}?market=SP500` | Grad-CAM heatmap (PNG) |
 | GET | `/weights_json?market=SP500` | Learned projection weights |
 | GET | `/indicators/{market}` | Indicator importance ranking |
 | GET | `/model/history/{market}` | Training run history |
 | POST | `/train` | Trigger model training |
 | GET | `/train/{job_id}` | Training job status |
-| POST | `/predictions/save?market=SP500` | Save daily predictions |
-| POST | `/api/drift/check?market=SP500` | Evaluate prediction accuracy |
+| POST | `/predictions/save?market=SP500` | Save weekly predictions |
 
 ---
 
-<p align="center">
-  Built with a focus on interpretability and reproducibility.
-</p>
