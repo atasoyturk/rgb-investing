@@ -114,6 +114,12 @@
         <div style="font-size:12px; color:var(--text2); max-width:320px;">
             <strong>What is Trust?</strong> Indicates how confident the model is in this signal. A signal strength of 70% or higher means that approximately 50% is unclear.
         </div>
+        @if (Model.ThresholdLabel != null)
+        {
+            <div class="alert-box info" style="margin-bottom:16px; font-size:13px;">
+                <strong>5 business days ahead forecast</strong> — @Model.ThresholdLabel
+            </div>
+        }
 
         <div style="font-size:12px; color:var(--text2); margin-bottom:16px;">
             <strong>Last Update</strong>: Every Friday 18:00 (BIST) / 00:00 (SP500, NASDAQ)
@@ -132,7 +138,6 @@
                         <th>Signal</th>
                         <th>Trust</th>
                         <th>Last Price</th>
-                        <th>Prediction</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -182,9 +187,7 @@
                                     <span style="color:var(--text2)">—</span>
                                 }
                             </td>
-                            <td>
-                                <small style="color:var(--text2)">@s.FutureDays day ahead forecast</small>
-                            </td>
+
                             <td>
                                 <a href="/Detail?ticker=@s.Ticker&market=@Model.SelectedMarket" class="btn-detail">Examine</a>
                             </td>

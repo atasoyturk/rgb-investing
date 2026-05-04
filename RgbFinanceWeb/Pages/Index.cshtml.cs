@@ -29,6 +29,7 @@ namespace RgbFinanceWeb.Pages
 
         public bool ShowPortfolio { get; set; } = false;
 
+        public string? ThresholdLabel { get; set; }
 
         public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger, 
                   AppDbContext db, UserManager<AppUser> userManager)
@@ -96,6 +97,15 @@ namespace RgbFinanceWeb.Pages
                         SignalsTable.Signals = SignalsTable.Signals
                             .Where(s => s.Confidence * 100 >= minTrust).ToList();
                 }
+
+                var thresholdResponse = await client.GetAsync($"threshold?market={market}");
+                if (thresholdResponse.IsSuccessStatusCode)
+                {
+                    var thresholdJson = JsonSerializer.Deserialize<JsonElement>(
+                        await thresholdResponse.Content.ReadAsStringAsync(), options);
+                    ThresholdLabel = thresholdJson.GetProperty("label").GetString();
+                }
+            
             }
             catch (HttpRequestException)  { ErrorMessage = "Cannot connect to Python API. Is FastAPI running?"; }
             catch (TaskCanceledException) { ErrorMessage = "Request timed out."; }
