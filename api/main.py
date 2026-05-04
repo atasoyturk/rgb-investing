@@ -2,7 +2,7 @@ import os
 import time
 import json
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.responses import Response
 from api.predictor import Predictor
 from api.schemas import SignalResponse, SignalsTableResponse, HealthResponse, TrainRequest, ThresholdResponse
@@ -14,9 +14,12 @@ from src.data import fetch_data
 from src.features import FeatureBuilder, FEATURE_CATALOG
 from src.builder import ExperimentBuilder
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 predictors: dict[str, Predictor] = {}
 train_status: dict   = {}
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,6 +38,8 @@ async def lifespan(app: FastAPI):
     print("[API] Shutting down.")
 
 
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="RGB Finance API",
     description="BUY/SELL signal generator — Deep RGB Encoding for Finance",
@@ -42,11 +47,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 from api.cache import get_cached_signals, set_cached_signals
 
 @app.get("/signals", response_model=SignalsTableResponse, tags=["Signals"])
-def get_all_signals(market: str = "SP500"):
+@limiter.limit("10/minute")
+async def get_all_signals(request: Request, market: str = "SP500"):
     try:
         pred = predictors.get(market)
         if pred is None:
@@ -87,7 +95,8 @@ def get_all_signals(market: str = "SP500"):
 
 
 @app.get("/signals/{ticker}", response_model=SignalResponse, tags=["Signals"])
-def get_signal(ticker: str, market: str = "SP500"):
+@limiter.limit("30/minute")
+async def get_signal(request: Request, ticker: str, market: str = "SP500"):
     try:
         pred = predictors.get(market)
         if pred is None:
@@ -99,7 +108,8 @@ def get_signal(ticker: str, market: str = "SP500"):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/indicators/{market}", tags=["Visualisation"])
-def get_indicators(market: str):
+@limiter.limit("20/minute")
+async def get_indicators(request: Request, market: str):
     try:
         pred = predictors.get(market)
         if pred is None:
@@ -129,7 +139,8 @@ def get_indicators(market: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/threshold", response_model=ThresholdResponse, tags=["System"])
-def get_threshold(market: str = "SP500"):
+@limiter.limit("10/minute")
+async def get_threshold(request: Request, market: str = "SP500"):
     from src.data import fetch_data
     from src.features import FeatureBuilder, FEATURE_CATALOG
     from src.tickers import MARKET_TICKERS
@@ -168,7 +179,8 @@ def get_threshold(market: str = "SP500"):
     return result
     
 @app.get("/model/history/{market}", tags=["Monitoring"])
-def get_model_history(market: str):
+@limiter.limit("10/minute")
+async def get_model_history(request: Request, market: str):
     try:
         import mlflow
         from config import MLFLOW_TRACKING_URI
@@ -198,7 +210,8 @@ def get_model_history(market: str):
 
 
 @app.get("/gradcam/{ticker}", tags=["Visualisation"])
-def get_gradcam(ticker: str, market: str = "SP500"):
+@limiter.limit("20/minute")
+async def get_gradcam(request: Request, ticker: str, market: str = "SP500"):
     try:
         pred = predictors.get(market)
         if pred is None:
@@ -218,7 +231,8 @@ def get_gradcam(ticker: str, market: str = "SP500"):
 
 
 @app.get("/weights", tags=["Visualisation"])
-def get_weights(market: str = "SP500"):
+@limiter.limit("20/minute")
+async def get_weights(request: Request, market: str = "SP500"):
     try:
         pred = predictors.get(market)
         if pred is None:
@@ -229,7 +243,8 @@ def get_weights(market: str = "SP500"):
 
 
 @app.get("/weights_json", tags=["Visualisation"])
-def get_weights_json(market: str = "SP500"):
+@limiter.limit("20/minute")
+async def get_weights_json(request: Request, market: str = "SP500"):
     try:
         pred = predictors.get(market)
         if pred is None:
@@ -317,7 +332,8 @@ def _run_training(job_id: str, req: TrainRequest):
         train_status[job_id] = {"status": "error", "detail": str(e)}
 
 @app.post("/train", tags=["Training"])
-def train_model(req: TrainRequest, background_tasks: BackgroundTasks):
+@limiter.limit("3/minute")
+async def train_model(request: Request,req: TrainRequest, background_tasks: BackgroundTasks):
     job_id = f"train_{int(time.time())}"
     train_status[job_id] = {"status": "running"}
     background_tasks.add_task(_run_training, job_id, req)
@@ -331,7 +347,8 @@ def get_train_status(job_id: str):
     return train_status[job_id]
 
 @app.post("/predictions/save", tags=["Monitoring"])
-def save_predictions(market: str, callback_url: str = "http://host.docker.internal:5000/api/predictions"):
+@limiter.limit("5/minute")
+async def save_predictions(request: Request, market: str, callback_url: str = "http://178.104.125.39:5175/api/predictions"):
     try:
         pred    = predictors.get(market)
         if pred is None:
