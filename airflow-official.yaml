@@ -70,6 +70,15 @@ x-airflow-common:
     # WARNING: Use _PIP_ADDITIONAL_REQUIREMENTS option ONLY for a quick checks
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    AIRFLOW__SMTP__SMTP_HOST: smtp.gmail.com
+    AIRFLOW__SMTP__SMTP_PORT: 587
+    AIRFLOW__SMTP__SMTP_STARTTLS: 'true'
+    AIRFLOW__SMTP__SMTP_USER: ${AIRFLOW_GMAIL_USER}
+    AIRFLOW__SMTP__SMTP_PASSWORD: ${AIRFLOW_GMAIL_PASSWORD}
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: ${AIRFLOW_GMAIL_USER}
+    AIRFLOW_GMAIL_USER: ${AIRFLOW_GMAIL_USER}
+    AIRFLOW_GMAIL_PASSWORD: ${AIRFLOW_GMAIL_PASSWORD}
+    AIRFLOW_NOTIFY_TO: ${AIRFLOW_NOTIFY_TO}
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
