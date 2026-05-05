@@ -53,6 +53,10 @@ class Predictor:
         with open(meta_path)   as f: self.meta         = json.load(f)
         with open(scaler_path) as f: self.scaler_stats = json.load(f)
 
+        # Scaler bir kez init edilir, her predict'te yeniden oluşturulmaz
+        self.scaler = QuantileScaler()
+        self.scaler.stats = {f: tuple(v) for f, v in self.scaler_stats.items()}
+
         print(
             f"[Predictor] Ready — "
             f"window={self.meta['window_size']}  "
@@ -65,16 +69,16 @@ class Predictor:
         feature_cols = self.meta["feature_cols"]
         image_size   = self.meta["image_size"]
         n_features   = len(feature_cols)
-        
+
         start = (datetime.now() - timedelta(days=365*10)).strftime("%Y-%m-%d")
         end   = datetime.now().strftime("%Y-%m-%d")
 
         data = fetch_data(tickers=[ticker], start=start, end=end)
         if data.empty:
             raise ValueError(f"No data for '{ticker}'.")
-        
+
         data = data.copy()
-        
+
         if hasattr(data.index, "tz") and data.index.tz is not None:
             data.index = data.index.tz_convert(None)
         if "Ticker" not in data.columns:
@@ -87,10 +91,31 @@ class Predictor:
         if len(tdf) < window_size:
             raise ValueError(f"Not enough data for '{ticker}': need {window_size}, got {len(tdf)}.")
 
-        scaler = QuantileScaler()
-        scaler.stats = {f: tuple(v) for f, v in self.scaler_stats.items()}
-        tdf = scaler.transform(tdf)
+        tdf        = self.scaler.transform(tdf)
+        tdf        = tdf.tail(window_size)
+        last_price = float(tdf["Close"].iloc[-1])
+        image      = tdf[feature_cols].values.reshape(image_size, image_size, n_features).astype(np.float32)
+        return image, last_price
 
+    def _prepare_ticker(self, tdf: pd.DataFrame, ticker: str) -> tuple[np.ndarray, float]:
+        window_size  = self.meta["window_size"]
+        feature_cols = self.meta["feature_cols"]
+        image_size   = self.meta["image_size"]
+        n_features   = len(feature_cols)
+
+        if hasattr(tdf.index, "tz") and tdf.index.tz is not None:
+            tdf.index = tdf.index.tz_convert(None)
+        if "Ticker" not in tdf.columns:
+            tdf["Ticker"] = ticker
+
+        builder = FeatureBuilder(tdf)
+        df      = builder.build_custom({"R": feature_cols, "G": feature_cols, "B": feature_cols})
+        tdf     = df[df["Ticker"] == ticker].copy()
+
+        if len(tdf) < window_size:
+            raise ValueError(f"Not enough data: need {window_size}, got {len(tdf)}")
+
+        tdf        = self.scaler.transform(tdf)
         tdf        = tdf.tail(window_size)
         last_price = float(tdf["Close"].iloc[-1])
         image      = tdf[feature_cols].values.reshape(image_size, image_size, n_features).astype(np.float32)
@@ -113,9 +138,9 @@ class Predictor:
         }
 
     def predict_all(self) -> list[dict]:
-        tickers      = self.meta.get("tickers", [])
-        start        = (datetime.now() - timedelta(days=365*10)).strftime("%Y-%m-%d")
-        end          = datetime.now().strftime("%Y-%m-%d")
+        tickers = self.meta.get("tickers", [])
+        start   = (datetime.now() - timedelta(days=365*10)).strftime("%Y-%m-%d")
+        end     = datetime.now().strftime("%Y-%m-%d")
 
         try:
             all_data = fetch_data(tickers=tickers, start=start, end=end)
@@ -123,41 +148,36 @@ class Predictor:
             print(f"[predict_all] fetch error: {e}")
             return []
 
-        window_size  = self.meta["window_size"]
-        feature_cols = self.meta["feature_cols"]
-        image_size   = self.meta["image_size"]
-        n_features   = len(feature_cols)
+        # 1. Tüm ticker'lar için image hazırla
+        images      = []
+        last_prices = []
+        valid       = []
+        errors      = []
 
-        results = []
         for t in tickers:
             try:
                 tdf = all_data[all_data["Ticker"] == t].copy()
                 if tdf.empty:
                     raise ValueError(f"No data for {t}")
+                image, last_price = self._prepare_ticker(tdf, t)
+                images.append(image)
+                last_prices.append(last_price)
+                valid.append(t)
+            except Exception as e:
+                print(f"  [{t}] prep error: {e}")
+                errors.append(t)
 
-                if hasattr(tdf.index, "tz") and tdf.index.tz is not None:
-                    tdf.index = tdf.index.tz_convert(None)
-                if "Ticker" not in tdf.columns:
-                    tdf["Ticker"] = t
+        # 2. Tek seferde batch prediction
+        results = []
+        if images:
+            batch = np.stack(images, axis=0)  # (N, 20, 20, 16)
+            probs = self.model.predict(batch, batch_size=64, verbose=0).flatten()
 
-                builder = FeatureBuilder(tdf)
-                df      = builder.build_custom({"R": feature_cols, "G": feature_cols, "B": feature_cols})
-                tdf     = df[df["Ticker"] == t].copy()
-
-                if len(tdf) < window_size:
-                    raise ValueError(f"Not enough data: need {window_size}, got {len(tdf)}")
-
-                scaler       = QuantileScaler()
-                scaler.stats = {f: tuple(v) for f, v in self.scaler_stats.items()}
-                tdf          = scaler.transform(tdf)
-                tdf          = tdf.tail(window_size)
-                last_price   = float(tdf["Close"].iloc[-1])
-                image        = tdf[feature_cols].values.reshape(image_size, image_size, n_features).astype(np.float32)
-                prob         = float(self.model.predict(image[np.newaxis, ...], verbose=0)[0][0])
-                signal       = "BUY" if prob > 0.5 else "SELL"
-                confidence   = prob if prob > 0.5 else 1 - prob
-                currency     = "₺" if t.endswith(".IS") else "$"
-
+            for t, prob, last_price in zip(valid, probs, last_prices):
+                prob       = float(prob)
+                signal     = "BUY" if prob > 0.5 else "SELL"
+                confidence = prob if prob > 0.5 else 1 - prob
+                currency   = "₺" if t.endswith(".IS") else "$"
                 results.append({
                     "ticker":          t,
                     "signal":          signal,
@@ -167,17 +187,19 @@ class Predictor:
                     "future_days":     self.meta["future_days"],
                     "in_training_set": t in tickers,
                 })
-            except Exception as e:
-                print(f"  [{t}] error: {e}")
-                results.append({
-                    "ticker":          t,
-                    "signal":          "ERROR",
-                    "confidence":      0.0,
-                    "last_price":      None,
-                    "currency":        "₺" if t.endswith(".IS") else "$",
-                    "future_days":     self.meta["future_days"],
-                    "in_training_set": True,
-                })
+
+        # 3. Hatalı ticker'ları ekle
+        for t in errors:
+            results.append({
+                "ticker":          t,
+                "signal":          "ERROR",
+                "confidence":      0.0,
+                "last_price":      None,
+                "currency":        "₺" if t.endswith(".IS") else "$",
+                "future_days":     self.meta["future_days"],
+                "in_training_set": True,
+            })
+
         return results
 
     def gradcam_png(self, ticker: str) -> bytes:
@@ -207,9 +229,9 @@ class Predictor:
             heatmap[..., np.newaxis], [image.shape[0], image.shape[1]]
         ).numpy().squeeze()
 
-        prob    = float(predictions[0][0][0])
-        signal  = "BUY" if prob > 0.5 else "SELL"
-        color   = "green" if signal == "BUY" else "red"
+        prob     = float(predictions[0][0][0])
+        signal   = "BUY" if prob > 0.5 else "SELL"
+        color    = "green" if signal == "BUY" else "red"
         mean_img = image.mean(axis=-1)
 
         fig, axes = plt.subplots(1, 3, figsize=(12, 4))
