@@ -119,6 +119,8 @@ namespace RgbFinanceWeb.Pages
 
                     AllSignals = SignalsTable.Signals.ToList();
 
+                    _logger.LogInformation($"PAGE: {page}, SKIP: {(page-1)*PageSize}, TOTAL: {SignalsTable.Signals.Count}"); //debug
+
                     CurrentPage = page;
                     TotalPages  = (int)Math.Ceiling(SignalsTable.Signals.Count / (double)PageSize);
                     SignalsTable.Signals = SignalsTable.Signals
