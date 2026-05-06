@@ -25,7 +25,7 @@
         <div class="stat-card">
             <div class="stat-label">Total Stock</div>
             <div class="stat-value">
-                @(Model.SignalsTable?.Signals.Count ?? 0)
+                @(Model.TotalSignalCount)
             </div>
         </div>
         <div class="stat-card">
@@ -216,7 +216,7 @@
     <div style="display:flex; gap:8px; margin-top:16px; justify-content:center;">
         @for (int i = 1; i <= Model.TotalPages; i++)
         {
-            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=@Model.MinTrust&page=@i"
+            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=@Model.MinTrust&showPortfolio=@Model.ShowPortfolio&page=@i"
                class="btn-detail @(Model.CurrentPage == i ? "active" : "")">@i</a>
         }
     </div>

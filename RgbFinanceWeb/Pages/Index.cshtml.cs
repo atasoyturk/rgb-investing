@@ -34,6 +34,7 @@ namespace RgbFinanceWeb.Pages
         public int CurrentPage { get; set; } = 1;
         public int PageSize    { get; set; } = 15;
         public int TotalPages  { get; set; }
+        public int TotalSignalCount { get; set; }
 
         public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger, 
                   AppDbContext db, UserManager<AppUser> userManager)
@@ -121,6 +122,8 @@ namespace RgbFinanceWeb.Pages
                                 (sig.LastPrice.Value - pred.PriceAtSignal) / pred.PriceAtSignal * 100, 2);
                         }
                     }
+
+                    TotalSignalCount = SignalsTable.Signals.Count;
 
                     CurrentPage = page;
                     TotalPages  = (int)Math.Ceiling(SignalsTable.Signals.Count / (double)PageSize);
