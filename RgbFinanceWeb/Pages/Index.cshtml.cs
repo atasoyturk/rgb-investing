@@ -14,28 +14,22 @@ namespace RgbFinanceWeb.Pages
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<IndexModel> _logger;
-
         private readonly AppDbContext _db;
         private readonly UserManager<AppUser> _userManager;
 
         public SignalsTableModel? SignalsTable { get; set; }
         public HealthModel?       Health       { get; set; }
         public string?            ErrorMessage { get; set; }
-
         public string SelectedMarket { get; set; } = "SP500";  
-
         public string SelectedSignal { get; set; } = "ALL";
         public int    MinTrust       { get; set; } = 0;
-
         public bool ShowPortfolio { get; set; } = false;
-
         public string? ThresholdLabel { get; set; }
-
         public int CurrentPage { get; set; } = 1;
         public int PageSize    { get; set; } = 15;
         public int TotalPages  { get; set; }
-        public int TotalSignalCount { get; set; }
-
+        public List<SignalModel> AllSignals { get; set; } = new();
+        
         public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger, 
                   AppDbContext db, UserManager<AppUser> userManager)
         {
@@ -123,7 +117,7 @@ namespace RgbFinanceWeb.Pages
                         }
                     }
 
-                    TotalSignalCount = SignalsTable.Signals.Count;
+                    AllSignals = SignalsTable.Signals.ToList();
 
                     CurrentPage = page;
                     TotalPages  = (int)Math.Ceiling(SignalsTable.Signals.Count / (double)PageSize);

@@ -25,19 +25,19 @@
         <div class="stat-card">
             <div class="stat-label">Total Stock</div>
             <div class="stat-value">
-                @(Model.TotalSignalCount)
+                @(Model.AllSignals.Count)
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-label">BUY Signal</div>
             <div class="stat-value buy">
-                @(Model.SignalsTable?.Signals.Count(s => s.Signal == "BUY") ?? 0)
+                @(Model.AllSignals.Count(s => s.Signal == "BUY"))
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-label">SELL Signal</div>
             <div class="stat-value sell">
-                @(Model.SignalsTable?.Signals.Count(s => s.Signal == "SELL") ?? 0)
+                @(Model.AllSignals.Count(s => s.Signal == "SELL"))
             </div>
         </div>
         <div class="stat-card">
