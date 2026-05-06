@@ -31,6 +31,10 @@ namespace RgbFinanceWeb.Pages
 
         public string? ThresholdLabel { get; set; }
 
+        public int CurrentPage { get; set; } = 1;
+        public int PageSize    { get; set; } = 15;
+        public int TotalPages  { get; set; }
+
         public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger, 
                   AppDbContext db, UserManager<AppUser> userManager)
         {
@@ -44,7 +48,8 @@ namespace RgbFinanceWeb.Pages
             string market = "SP500", 
             string signal = "ALL", 
             int minTrust = 0, 
-            bool showPortfolio = false)
+            bool showPortfolio = false,
+            int page = 1)
         {
             if (!User.Identity?.IsAuthenticated ?? true)
                 return RedirectToPage("/Landing");
@@ -116,6 +121,14 @@ namespace RgbFinanceWeb.Pages
                                 (sig.LastPrice.Value - pred.PriceAtSignal) / pred.PriceAtSignal * 100, 2);
                         }
                     }
+
+                    CurrentPage = page;
+                    TotalPages  = (int)Math.Ceiling(SignalsTable.Signals.Count / (double)PageSize);
+                    SignalsTable.Signals = SignalsTable.Signals
+                        .OrderByDescending(x => x.Confidence)
+                        .Skip((page - 1) * PageSize)
+                        .Take(PageSize)
+                        .ToList();
                 }
 
                 var thresholdResponse = await client.GetAsync($"threshold?market={market}");
