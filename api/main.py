@@ -402,6 +402,7 @@ async def save_predictions(request: Request, market: str, callback_url: str = "h
             "price_at_signal": r["last_price"] or 0,
             "predicted_date":  str(today),
             "target_date":     str(target_date),
+            "threshold":       float(pred.meta.get("label_threshold", 0.03))
         } for r in results if r["signal"] != "ERROR"]
 
         requests.post(callback_url, json=payload, timeout=10)

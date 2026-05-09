@@ -29,6 +29,7 @@ namespace RgbFinanceWeb.Data
         public DateTime TargetDate    { get; set; }
         public bool?    ActualOutcome { get; set; }  // null = henüz bilinmiyor
         public float?   ActualPrice   { get; set; }
+        public float    Threshold     { get; set; } = 0.03f; // default fallback
     }
     
     public class AppDbContext : IdentityDbContext<AppUser>

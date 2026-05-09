@@ -24,6 +24,8 @@ namespace RgbFinanceWeb.Endpoints
                         TargetDate    = DateTime.Parse(p.TargetDate),
                         ActualOutcome = null,
                         ActualPrice   = null,
+                        Threshold     = p.Threshold,
+
                     });
                 }
                 await db.SaveChangesAsync();
@@ -56,8 +58,8 @@ namespace RgbFinanceWeb.Endpoints
                         var current = signal.GetProperty("last_price").GetDouble();
 
                         bool outcome      = pred.Signal == "BUY"
-                            ? current > pred.PriceAtSignal
-                            : current < pred.PriceAtSignal;
+                            ? current > pred.PriceAtSignal * (1 + pred.Threshold)
+                            : current < pred.PriceAtSignal  * (1 - pred.Threshold);
 
                         pred.ActualOutcome = outcome;
                         pred.ActualPrice   = (float)current;
@@ -86,6 +88,7 @@ namespace RgbFinanceWeb.Endpoints
         float  Confidence,
         float  PriceAtSignal,
         string PredictedDate,
-        string TargetDate
+        string TargetDate,
+        float  Threshold 
     );
 }
