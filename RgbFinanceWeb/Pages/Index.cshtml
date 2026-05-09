@@ -219,11 +219,44 @@
         <div class="alert-box info">Signal cannot be found.</div>
     }
 
-    <div style="display:flex; gap:8px; margin-top:16px; justify-content:center;">
-        @for (int i = 1; i <= Model.TotalPages; i++)
+    <div style="display:flex; gap:8px; margin-top:16px; justify-content:center; align-items:center; flex-wrap:wrap;">
+        @{
+            var baseUrl = $"?market={Model.SelectedMarket}&signal={Model.SelectedSignal}&minTrust={Model.MinTrust}&showPortfolio={Model.ShowPortfolio}&search={Model.Search}&page=";
+            var cur = Model.CurrentPage;
+            var total = Model.TotalPages;
+
+            var pages = new List<int?>();
+            for (int i = 1; i <= total; i++)
+            {
+                if (i == 1 || i == total || (i >= cur - 2 && i <= cur + 2))
+                    pages.Add(i);
+                else if (pages.LastOrDefault() != null)
+                    pages.Add(null); // ellipsis
+            }
+            pages = pages.Distinct().ToList();
+        }
+
+        @if (cur > 1)
         {
-            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=@Model.MinTrust&showPortfolio=@Model.ShowPortfolio&search=@Model.Search&page=@i"
-            class="btn-detail @(Model.CurrentPage == i ? "active" : "")">@i</a>
+            <a href="@baseUrl@(cur - 1)" class="btn-detail">‹</a>
+        }
+
+        @foreach (var p in pages)
+        {
+            if (p == null)
+            {
+                <span style="color:var(--text2); padding:0 4px;">...</span>
+            }
+            else
+            {
+                <a href="@baseUrl@p" class="btn-detail @(cur == p ? "active" : "")">@p</a>
+            }
+        }
+
+        @if (cur < total)
+        {
+            <a href="@baseUrl@(cur + 1)" class="btn-detail">›</a>
         }
     </div>
+
 </div>
