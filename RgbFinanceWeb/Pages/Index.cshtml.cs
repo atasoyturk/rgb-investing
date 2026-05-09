@@ -28,6 +28,7 @@ namespace RgbFinanceWeb.Pages
         public int CurrentPage { get; set; } = 1;
         public int PageSize    { get; set; } = 15;
         public int TotalPages  { get; set; }
+        public string Search { get; set; } = "";
         public List<SignalModel> AllSignals { get; set; } = new();
         
         public IndexModel(IHttpClientFactory httpClientFactory, ILogger<IndexModel> logger, 
@@ -44,7 +45,8 @@ namespace RgbFinanceWeb.Pages
             string signal = "ALL", 
             int minTrust = 0, 
             bool showPortfolio = false,
-            [FromQuery] int page = 1)
+            [FromQuery] int page = 1,
+            string search = "")
         {
             if (!User.Identity?.IsAuthenticated ?? true)
                 return RedirectToPage("/Landing");
@@ -63,6 +65,7 @@ namespace RgbFinanceWeb.Pages
                     Health = JsonSerializer.Deserialize<HealthModel>(
                         await healthResponse.Content.ReadAsStringAsync(), options);
                 
+                Search = search;                
                 SelectedMarket = market;
                 SelectedSignal = signal;
                 MinTrust       = minTrust;
@@ -120,6 +123,11 @@ namespace RgbFinanceWeb.Pages
                     AllSignals = SignalsTable.Signals.ToList();
 
                     _logger.LogInformation($"PAGE: {page}, SKIP: {(page-1)*PageSize}, TOTAL: {SignalsTable.Signals.Count}"); //debug
+
+                    if (!string.IsNullOrWhiteSpace(search))
+                        SignalsTable.Signals = SignalsTable.Signals
+                            .Where(s => s.Ticker.Contains(search.ToUpper()))
+                            .ToList();
 
                     CurrentPage = page;
                     TotalPages  = (int)Math.Ceiling(SignalsTable.Signals.Count / (double)PageSize);

@@ -104,9 +104,15 @@
         </div>
         
         <div>
-            <input type="text" id="ticker-search-filter" placeholder="Search ticker..." 
-                class="form-input" style="width:180px; padding:5px 10px; font-size:13px;"
-                oninput="filterTable(this.value)" />
+            <form method="get" style="display:inline;">
+                <input type="hidden" name="market" value="@Model.SelectedMarket" />
+                <input type="hidden" name="signal" value="@Model.SelectedSignal" />
+                <input type="hidden" name="minTrust" value="@Model.MinTrust" />
+                <input type="hidden" name="showPortfolio" value="@Model.ShowPortfolio" />
+                <input type="text" name="search" value="@Model.Search" placeholder="Search ticker..." 
+                    class="form-input" style="width:180px; padding:5px 10px; font-size:13px;" />
+                <button type="submit" class="btn-detail" style="padding:5px 10px;">Search</button>
+            </form>
         </div>
         
         <div style="font-size:12px; color:var(--text2); max-width:320px;">
@@ -216,20 +222,8 @@
     <div style="display:flex; gap:8px; margin-top:16px; justify-content:center;">
         @for (int i = 1; i <= Model.TotalPages; i++)
         {
-            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=@Model.MinTrust&showPortfolio=@Model.ShowPortfolio&page=@i"
-               class="btn-detail @(Model.CurrentPage == i ? "active" : "")">@i</a>
+            <a href="?market=@Model.SelectedMarket&signal=@Model.SelectedSignal&minTrust=@Model.MinTrust&showPortfolio=@Model.ShowPortfolio&search=@Model.Search&page=@i"
+            class="btn-detail @(Model.CurrentPage == i ? "active" : "")">@i</a>
         }
     </div>
-
-    <script>
-        function filterTable(q) {
-            const rows = document.querySelectorAll('.signal-table-row');
-            const lower = q.toLowerCase();
-            rows.forEach(row => {
-                const ticker = row.dataset.ticker.toLowerCase();
-                row.style.display = ticker.includes(lower) ? '' : 'none';
-            });
-        }
-    </script>
-
 </div>
