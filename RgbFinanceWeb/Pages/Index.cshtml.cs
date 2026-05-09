@@ -44,7 +44,7 @@ namespace RgbFinanceWeb.Pages
             string signal = "ALL", 
             int minTrust = 0, 
             bool showPortfolio = false,
-            int page = 1)
+            [FromQuery] int page = 1)
         {
             if (!User.Identity?.IsAuthenticated ?? true)
                 return RedirectToPage("/Landing");
