@@ -25,12 +25,20 @@ builder.Configuration["ApiSettings:BaseUrl"] =
     Environment.GetEnvironmentVariable("API_BASE_URL")
     ?? builder.Configuration["ApiSettings:BaseUrl"];
 
+builder.Configuration["InternalApi:WebToApiKey"] =
+    Environment.GetEnvironmentVariable("INTERNAL_API_KEY_WEB")
+    ?? builder.Configuration["InternalApi:WebToApiKey"];
+
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:8000/";
 
 builder.Services.AddHttpClient("FinanceApi", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout     = TimeSpan.FromSeconds(300);
+
+    var webToApiKey = builder.Configuration["InternalApi:WebToApiKey"];
+    if (!string.IsNullOrEmpty(webToApiKey))
+        client.DefaultRequestHeaders.Add("X-Internal-Api-Key", webToApiKey);
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
