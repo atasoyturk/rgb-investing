@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.models import Variable
 
 default_args = {
     'owner': 'airflow',
@@ -10,10 +11,13 @@ default_args = {
 
 def update_and_save(market: str, **kwargs):
     import requests
+    api_key = Variable.get("internal_api_key_airflow", default_var=None)
+    headers = {"X-Internal-Api-Key": api_key} if api_key else {}
     
     # 1. Cache güncelle
     r = requests.get(
         f"http://178.104.125.39:8000/signals?market={market}",
+        headers=headers,
         timeout=120
     )
     print(f"{market} cache updated: {r.status_code}")
@@ -21,6 +25,7 @@ def update_and_save(market: str, **kwargs):
     # 2. Tahminleri kaydet
     r2 = requests.post(
         f"http://178.104.125.39:8000/predictions/save?market={market}&callback_url=http://178.104.125.39:5175/api/predictions",
+        headers=headers,
         timeout=300
     )
     print(f"{market} predictions saved: {r2.json()}")

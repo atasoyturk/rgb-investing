@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.models import Variable
 
 default_args = {
     'owner': 'airflow',
@@ -10,8 +11,11 @@ default_args = {
 
 def update_prices(market: str, **kwargs):
     import requests
+    api_key = Variable.get("internal_api_key_airflow", default_var=None)
+    headers = {"X-Internal-Api-Key": api_key} if api_key else {}
     r = requests.post(
         f"http://178.104.125.39:8000/prices/update?market={market}",
+        headers=headers,
         timeout=60
     )
     print(f"{market} prices updated: {r.json()}")

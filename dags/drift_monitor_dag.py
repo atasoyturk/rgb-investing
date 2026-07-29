@@ -3,6 +3,7 @@ import smtplib
 from email.mime.text import MIMEText
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.models import Variable
 
 import os
 
@@ -30,9 +31,13 @@ def send_email(subject: str, body: str):
 
 def check_drift(market: str, **kwargs):
     import requests
+    api_key = Variable.get("internal_api_key_airflow", default_var=None)
+    headers = {"X-Internal-Api-Key": api_key} if api_key else {}
 
-    r      = requests.post(
+
+    r = requests.post(
         f"http://178.104.125.39:5175/api/drift/check?market={market}",
+        headers = headers,
         timeout=60
     )
     result = r.json()
@@ -56,6 +61,7 @@ def check_drift(market: str, **kwargs):
         # Retrain tetikle
         trigger = requests.post(
             "http://178.104.125.39:8000/train",
+            headers=headers,
             json={"market": market},
             timeout=30
         )

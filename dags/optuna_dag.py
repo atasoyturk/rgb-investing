@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.models import Variable
 
 default_args = {
     'owner': 'airflow',
@@ -35,6 +36,9 @@ def run_optuna(market: str, **kwargs):
 
 def trigger_retrain_with_best_params(market: str, **kwargs):
     import requests
+    
+    api_key = Variable.get("internal_api_key_airflow", default_var=None)
+    headers = {"X-Internal-Api-Key": api_key} if api_key else {}
     
     ti          = kwargs['ti']
     best_params = ti.xcom_pull(key=f'best_params_{market}')
