@@ -1,5 +1,8 @@
 import os
+from dotenv import load_dotenv
 from fastapi import Header, HTTPException
+
+load_dotenv()
 
 
 def _load_accepted_keys() -> set[str]:
