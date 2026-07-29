@@ -2,12 +2,12 @@ import os
 import time
 import json
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Depends
 from fastapi.responses import Response
 from api.predictor import Predictor
 from api.schemas import SignalResponse, SignalsTableResponse, HealthResponse, TrainRequest, ThresholdResponse
 from api.cache import get_cached_signals, set_cached_signals, get_cached_gradcam, set_cached_gradcam, r, CACHE_TTL
-
+from api.auth import verify_internal_api_key
 
 from src.experiment_config import ExperimentConfig
 from src.data import fetch_data
@@ -52,7 +52,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 from api.cache import get_cached_signals, set_cached_signals
 
-@app.get("/signals", response_model=SignalsTableResponse, tags=["Signals"])
+@app.get("/signals", response_model=SignalsTableResponse, tags=["Signals"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("10/minute")
 async def get_all_signals(request: Request, market: str = "SP500"):
     try:
@@ -94,7 +94,7 @@ async def get_all_signals(request: Request, market: str = "SP500"):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/signals/{ticker}", response_model=SignalResponse, tags=["Signals"])
+@app.get("/signals/{ticker}", response_model=SignalResponse, tags=["Signals"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("30/minute")
 async def get_signal(request: Request, ticker: str, market: str = "SP500"):
     try:
@@ -108,7 +108,7 @@ async def get_signal(request: Request, ticker: str, market: str = "SP500"):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/prices/update", tags=["System"])
+@app.post("/prices/update", tags=["System"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("5/minute")
 async def update_prices(request: Request, market: str = "SP500"):
     try:
@@ -140,7 +140,7 @@ async def update_prices(request: Request, market: str = "SP500"):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/indicators/{market}", tags=["Visualisation"])
+@app.get("/indicators/{market}", tags=["Visualisation"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("20/minute")
 async def get_indicators(request: Request, market: str):
     try:
@@ -171,7 +171,7 @@ async def get_indicators(request: Request, market: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/threshold", response_model=ThresholdResponse, tags=["System"])
+@app.get("/threshold", response_model=ThresholdResponse, tags=["System"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("10/minute")
 async def get_threshold(request: Request, market: str = "SP500"):
     from src.data import fetch_data
@@ -211,7 +211,7 @@ async def get_threshold(request: Request, market: str = "SP500"):
     r.setex(f"threshold:{market}", CACHE_TTL, json.dumps(result))
     return result
     
-@app.get("/model/history/{market}", tags=["Monitoring"])
+@app.get("/model/history/{market}", tags=["Monitoring"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("10/minute")
 async def get_model_history(request: Request, market: str):
     try:
@@ -242,7 +242,7 @@ async def get_model_history(request: Request, market: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/gradcam/{ticker}", tags=["Visualisation"])
+@app.get("/gradcam/{ticker}", tags=["Visualisation"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("20/minute")
 async def get_gradcam(request: Request, ticker: str, market: str = "SP500"):
     try:
@@ -263,7 +263,7 @@ async def get_gradcam(request: Request, ticker: str, market: str = "SP500"):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/weights", tags=["Visualisation"])
+@app.get("/weights", tags=["Visualisation"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("20/minute")
 async def get_weights(request: Request, market: str = "SP500"):
     try:
@@ -275,7 +275,7 @@ async def get_weights(request: Request, market: str = "SP500"):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/weights_json", tags=["Visualisation"])
+@app.get("/weights_json", tags=["Visualisation"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("20/minute")
 async def get_weights_json(request: Request, market: str = "SP500"):
     try:
@@ -364,7 +364,7 @@ def _run_training(job_id: str, req: TrainRequest):
     except Exception as e:
         train_status[job_id] = {"status": "error", "detail": str(e)}
 
-@app.post("/train", tags=["Training"])
+@app.post("/train", tags=["Training"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("3/minute")
 async def train_model(request: Request,req: TrainRequest, background_tasks: BackgroundTasks):
     job_id = f"train_{int(time.time())}"
@@ -373,13 +373,13 @@ async def train_model(request: Request,req: TrainRequest, background_tasks: Back
     return {"job_id": job_id, "status": "started"}
 
 
-@app.get("/train/{job_id}", tags=["Training"])
+@app.get("/train/{job_id}", tags=["Training"], dependencies=[Depends(verify_internal_api_key)])
 def get_train_status(job_id: str):
     if job_id not in train_status:
         raise HTTPException(status_code=404, detail="Job not found")
     return train_status[job_id]
 
-@app.post("/predictions/save", tags=["Monitoring"])
+@app.post("/predictions/save", tags=["Monitoring"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("5/minute")
 async def save_predictions(request: Request, market: str, callback_url: str = "http://178.104.125.39:5175/api/predictions"):
     try:
