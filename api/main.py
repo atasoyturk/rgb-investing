@@ -391,6 +391,9 @@ async def save_predictions(request: Request, market: str, callback_url: str = "h
         import requests
         from datetime import datetime, timedelta
         
+        api_key = os.environ.get("INTERNAL_API_KEY_API")
+        headers = {"X-Internal-Api-Key": api_key} if api_key else {}
+        
         today       = datetime.now().date()
         target_date = today + timedelta(days=pred.meta["future_days"])
         
@@ -405,7 +408,7 @@ async def save_predictions(request: Request, market: str, callback_url: str = "h
             "threshold":       float(pred.meta.get("label_threshold", 0.03))
         } for r in results if r["signal"] != "ERROR"]
 
-        requests.post(callback_url, json=payload, timeout=10)
+        requests.post(callback_url, json=payload, headers=headers, timeout=10)
         return {"saved": len(payload)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
