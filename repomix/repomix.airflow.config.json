@@ -1,0 +1,24 @@
+{
+  "input": {
+    "maxFileSize": 50000000
+  },
+  "output": {
+    "filePath": "artifacts/airflow_code.xml",
+    "style": "xml"
+  },
+  "include": [
+    "dags/**/*"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "artifacts/**",
+      "repomix/**",
+      "scripts/**",
+      "**/__pycache__/**",
+      "**/*.pyc",
+      "**/*.log"
+    ]
+  }
+}

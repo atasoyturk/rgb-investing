@@ -1,0 +1,29 @@
+{
+  "input": {
+    "maxFileSize": 50000000
+  },
+  "output": {
+    "filePath": "artifacts/web_code.xml",
+    "style": "xml"
+  },
+  "include": [
+    "RgbFinanceWeb/**/*"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "artifacts/**",
+      "repomix/**",
+      "scripts/**",
+      "**/bin/**",
+      "**/obj/**",
+      "**/.vs/**",
+      "**/*.user",
+      "**/*.suo",
+      "**/*.dll",
+      "**/*.exe",
+      "**/*.pdb"
+    ]
+  }
+}
