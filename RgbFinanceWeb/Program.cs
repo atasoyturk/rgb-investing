@@ -29,6 +29,15 @@ builder.Configuration["InternalApi:WebToApiKey"] =
     Environment.GetEnvironmentVariable("INTERNAL_API_KEY_WEB")
     ?? builder.Configuration["InternalApi:WebToApiKey"];
 
+builder.Configuration["InternalApi:AirflowKey"] =
+    Environment.GetEnvironmentVariable("INTERNAL_API_KEY_AIRFLOW")
+    ?? builder.Configuration["InternalApi:AirflowKey"];
+
+builder.Configuration["InternalApi:ApiKey"] =
+    Environment.GetEnvironmentVariable("INTERNAL_API_KEY_API")
+    ?? builder.Configuration["InternalApi:ApiKey"];
+
+
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:8000/";
 
 builder.Services.AddHttpClient("FinanceApi", client =>

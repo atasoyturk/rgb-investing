@@ -30,7 +30,8 @@ namespace RgbFinanceWeb.Endpoints
                 }
                 await db.SaveChangesAsync();
                 return Results.Ok(new { saved = predictions.Count });
-            });
+            })
+            .AddEndpointFilter<InternalApiKeyFilter>();
 
             app.MapPost("/api/drift/check", async (string market, AppDbContext db, IHttpClientFactory factory) =>
             {
@@ -78,7 +79,8 @@ namespace RgbFinanceWeb.Endpoints
                     accuracy      = Math.Round(accuracy, 4),
                     message       = accuracy < 0.45 ? "⚠️ DRIFT DETECTED" : "✓ OK"
                 });
-            });
+            })
+            .AddEndpointFilter<InternalApiKeyFilter>();
         }
     }
     public record PredictionDto(
