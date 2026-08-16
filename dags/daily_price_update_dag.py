@@ -13,8 +13,9 @@ def update_prices(market: str, **kwargs):
     import requests
     api_key = Variable.get("internal_api_key_airflow", default_var=None)
     headers = {"X-Internal-Api-Key": api_key} if api_key else {}
+    api_base_url = Variable.get("api_base_url", default_var="http://178.104.125.39:8000")
     r = requests.post(
-        f"http://178.104.125.39:8000/prices/update?market={market}",
+        f"{api_base_url}/prices/update?market={market}",
         headers=headers,
         timeout=60
     )

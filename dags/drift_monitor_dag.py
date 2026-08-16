@@ -33,10 +33,12 @@ def check_drift(market: str, **kwargs):
     import requests
     api_key = Variable.get("internal_api_key_airflow", default_var=None)
     headers = {"X-Internal-Api-Key": api_key} if api_key else {}
+    api_base_url = Variable.get("api_base_url", default_var="http://178.104.125.39:8000")
+    web_base_url = Variable.get("web_base_url", default_var="http://178.104.125.39:5175")
 
 
     r = requests.post(
-        f"http://178.104.125.39:5175/api/drift/check?market={market}",
+        f"{web_base_url}/api/drift/check?market={market}",
         headers = headers,
         timeout=60
     )
@@ -60,7 +62,7 @@ def check_drift(market: str, **kwargs):
 
         # Retrain tetikle
         trigger = requests.post(
-            "http://178.104.125.39:8000/train",
+            f"{api_base_url}/api/retrain",
             headers=headers,
             json={"market": market},
             timeout=30

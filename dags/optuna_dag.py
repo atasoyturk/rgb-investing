@@ -39,6 +39,7 @@ def trigger_retrain_with_best_params(market: str, **kwargs):
     
     api_key = Variable.get("internal_api_key_airflow", default_var=None)
     headers = {"X-Internal-Api-Key": api_key} if api_key else {}
+    api_base_url = Variable.get("api_base_url", default_var="http://178.104.125.39:8000")
     
     ti          = kwargs['ti']
     best_params = ti.xcom_pull(key=f'best_params_{market}')
@@ -62,7 +63,7 @@ def trigger_retrain_with_best_params(market: str, **kwargs):
         "stride":      best_params.get("stride", 5),
         "fine_tune":   fine_tune,
     }
-    r = requests.post("http://178.104.125.39:8000/train", json=payload, timeout=30)
+    r = requests.post(f"{api_base_url}/train", json=payload, timeout=30)
     print(f"{market} retrain triggered with best params: {r.json()}")
 
 

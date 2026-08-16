@@ -13,10 +13,12 @@ def update_and_save(market: str, **kwargs):
     import requests
     api_key = Variable.get("internal_api_key_airflow", default_var=None)
     headers = {"X-Internal-Api-Key": api_key} if api_key else {}
+    api_base_url = Variable.get("api_base_url", default_var="http://178.104.125.39:8000")
+    web_base_url = Variable.get("web_base_url", default_var="http://178.104.125.39:5175")
     
     # 1. Cache güncelle
     r = requests.get(
-        f"http://178.104.125.39:8000/signals?market={market}",
+        f"{api_base_url}/signals?market={market}",
         headers=headers,
         timeout=120
     )
@@ -24,7 +26,7 @@ def update_and_save(market: str, **kwargs):
     
     # 2. Tahminleri kaydet
     r2 = requests.post(
-        f"http://178.104.125.39:8000/predictions/save?market={market}&callback_url=http://178.104.125.39:5175/api/predictions",
+        f"{api_base_url}/predictions/save?market={market}&callback_url={web_base_url}/api/predictions",
         headers=headers,
         timeout=300
     )
