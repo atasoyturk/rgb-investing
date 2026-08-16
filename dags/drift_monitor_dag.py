@@ -35,7 +35,7 @@ def check_drift(market: str, **kwargs):
     headers = {"X-Internal-Api-Key": api_key} if api_key else {}
     api_base_url = Variable.get("api_base_url", default_var="http://178.104.125.39:8000")
     web_base_url = Variable.get("web_base_url", default_var="http://178.104.125.39:5175")
-
+    drift_threshold = float(Variable.get("drift_threshold", default_var="0.45"))
 
     r = requests.post(
         f"{web_base_url}/api/drift/check?market={market}",
@@ -46,7 +46,7 @@ def check_drift(market: str, **kwargs):
     print(f"{market} drift check: {result}")
 
     accuracy = result.get("accuracy")
-    if accuracy is not None and accuracy < 0.45:
+    if accuracy is not None and accuracy < drift_threshold:
         print(f"DRIFT DETECTED for {market}! Accuracy: {accuracy:.2%}")
 
         # Email gönder
@@ -55,14 +55,14 @@ def check_drift(market: str, **kwargs):
             body=(
                 f"Market: {market}\n"
                 f"Accuracy: {accuracy:.2%}\n"
-                f"Threshold: 45%\n\n"
+                f"Threshold: {drift_threshold:.0%}\n\n"
                 f"Otomatik yeniden model eğitimi tetiklendi."
             )
         )
 
         # Retrain tetikle
         trigger = requests.post(
-            f"{api_base_url}/api/retrain",
+            f"{api_base_url}/train",
             headers=headers,
             json={"market": market},
             timeout=30
