@@ -7,6 +7,8 @@ namespace RgbFinanceWeb.Endpoints
     {
         public static void MapPredictionEndpoints(this WebApplication app)
         {
+            var driftThreshold = app.Configuration.GetValue<double>("DriftSettings:Threshold", 0.45);
+
             app.MapPost("/api/predictions", async (
                 List<PredictionDto> predictions,
                 AppDbContext db) =>
@@ -77,7 +79,7 @@ namespace RgbFinanceWeb.Endpoints
                     checked_count = predictions.Count,
                     correct,
                     accuracy      = Math.Round(accuracy, 4),
-                    message       = accuracy < 0.45 ? "⚠️ DRIFT DETECTED" : "✓ OK"
+                    message       = accuracy < driftThreshold ? "⚠️ DRIFT DETECTED" : "✓ OK"
                 });
             })
             .AddEndpointFilter<InternalApiKeyFilter>();
