@@ -19,7 +19,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 predictors: dict[str, Predictor] = {}
-train_status: dict   = {}
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -355,29 +355,32 @@ def _run_training(job_id: str, req: TrainRequest):
         
         predictors[req.market] = Predictor(model_path=save_path)
 
-        train_status[job_id] = {
+        r.setex(f"train_status:{job_id}", CACHE_TTL, json.dumps({
             "status":   "done",
             "market":   req.market,
             "accuracy": round(exp.accuracy, 4),
             "f1_macro": round(exp.f1_macro, 4),
-        }
+        }))
     except Exception as e:
-        train_status[job_id] = {"status": "error", "detail": str(e)}
+        r.setex(f"train_status:{job_id}", CACHE_TTL, json.dumps({"status": "error", "detail": str(e)}))
 
 @app.post("/train", tags=["Training"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("3/minute")
 async def train_model(request: Request,req: TrainRequest, background_tasks: BackgroundTasks):
     job_id = f"train_{int(time.time())}"
-    train_status[job_id] = {"status": "running"}
+    r.setex(f"train_status:{job_id}", CACHE_TTL, json.dumps({"status": "running"}))
     background_tasks.add_task(_run_training, job_id, req)
     return {"job_id": job_id, "status": "started"}
 
 
 @app.get("/train/{job_id}", tags=["Training"], dependencies=[Depends(verify_internal_api_key)])
 def get_train_status(job_id: str):
-    if job_id not in train_status:
+    data = r.get(f"train_status:{job_id}")
+    
+    if data is None:
         raise HTTPException(status_code=404, detail="Job not found")
-    return train_status[job_id]
+    
+    return json.loads(data)
 
 @app.post("/predictions/save", tags=["Monitoring"], dependencies=[Depends(verify_internal_api_key)])
 @limiter.limit("5/minute")
